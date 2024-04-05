@@ -7,6 +7,7 @@
 package di
 
 import (
+	"dogker/lintang/monitor-service/config"
 	"dogker/lintang/monitor-service/internal/grpc"
 	"dogker/lintang/monitor-service/internal/repository/postgres"
 	"dogker/lintang/monitor-service/internal/rest"
@@ -21,7 +22,8 @@ import (
 
 // Injectors from wire.go:
 
-func InitRouterApi(gormGorm *gorm.Gorm, engine *gin.Engine) *gin.RouterGroup {
+func InitRouterApi(configConfig *config.Config, engine *gin.Engine) *gin.RouterGroup {
+	gormGorm := gorm.NewGorm(configConfig)
 	containerRepository := postgres.NewContainerRepo(gormGorm)
 	service := monitor.NewService(containerRepository)
 	routerGroup := rest.NewRouter(engine, service)

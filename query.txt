@@ -1,9 +1,13 @@
 
+sum(rate(container_cpu_usage_seconds_total{container_label_user_id=~"18d2e020-538d-449a-8e9c-02e4e5cf41111"}[30d]))  * 30 * 24 * 3600 / (12 * 3600)
 
-
-cpu usage: sum(rate(container_cpu_usage_seconds_total{user_id=""}[30d]))  * 30 * 24 * 3600 / (12 * 3600)
+cpu usage: sum(rate(container_cpu_usage_seconds_total{container_label_user_id=~""}[30d]))  * 30 * 24 * 3600 / (12 * 3600)
 network: (sum(increase(container_network_transmit_bytes_total{container_label_user_id=~"18d2e020-538d-449a-8e9c-02e4e5cf41111"}[30d])) + sum(increase(container_network_receive_bytes_total{container_label_user_id=~"18d2e020-538d-449a-8e9c-02e4e5cf41111"}[30d]))) / (1024)
 memory: avg_over_time(container_memory_usage_bytes{container_label_user_id=~"18d2e020-538d-449a-8e9c-02e4e5cf41111"}[30d]) * 30*24*3600 / 3600 / (1024^3)
+network ingress: sum(increase(container_network_receive_bytes_total{container_label_user_id=~"18d2e020-538d-449a-8e9c-02e4e5cf41111"}[30m])) / 1024
+cpu : sum(rate(container_cpu_usage_seconds_total{container_label_user_id=~"18d2e020-538d-449a-8e9c-02e4e5cf41111"}[1h])) * 100 * 14400 / 3600
+cpu: sum(increase(container_cpu_usage_seconds_total{container_label_user_id=~"18d2e020-538d-449a-8e9c-02e4e5cf41111"}[30d])) * 30*24*3600 / (12 * 3600)
+
 
 /*
 tes network : sum(rate(container_network_receive_bytes_total{container_label_user_id=~"18d2e020-538d-449a-8e9c-02e4e5cf41111"}[$interval]))

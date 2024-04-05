@@ -4,7 +4,6 @@ import (
 	"dogker/lintang/monitor-service/app/di"
 	"dogker/lintang/monitor-service/config"
 	"dogker/lintang/monitor-service/internal/rest/middleware"
-	"dogker/lintang/monitor-service/pkg/gorm"
 	"dogker/lintang/monitor-service/pkg/httpserver"
 	"fmt"
 	"log"
@@ -40,28 +39,25 @@ func main() {
 	if err != nil {
 		log.Fatalf("Config error: %s", err)
 	}
-	//  databae
-	gorm, err := gorm.NewGorm(cfg)
-	if err != nil {
-		log.Fatalf("Database Connection error: %s", err)
-	}
 
 	// HTTP Server
 	handler := gin.New()
-	httpServer := httpserver.New(handler, httpserver.Port("3000"))
+	httpServer := httpserver.New(handler, httpserver.Port("5000"))
 
 	// Router
-	di.InitRouterApi(gorm, handler)
+	di.InitRouterApi(cfg, handler)
 
-	address := fmt.Sprintf("0.0.0.0:%d", "3001")
+	address := "0.0.0.0:5001"
 	listener, err := net.Listen("tcp", address)
 	if err != nil {
 		zap.L().Fatal("cannot start server: ", zap.Error(err))
 	}
 
 	// GRPC
-	di.InitGrpcMonitorApi("http://localhost:9090", listener)
-
+	err = di.InitGrpcMonitorApi("http://localhost:9090", listener)
+	if err != nil {
+		zap.L().Fatal("cannot start GRPC  Server", zap.Error(err))
+	}
 
 	// Waiting signal
 	interrupt := make(chan os.Signal, 1)

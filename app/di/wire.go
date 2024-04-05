@@ -4,6 +4,7 @@
 package di
 
 import (
+	"dogker/lintang/monitor-service/config"
 	"dogker/lintang/monitor-service/internal/grpc"
 	"dogker/lintang/monitor-service/internal/repository/postgres"
 	"dogker/lintang/monitor-service/internal/rest"
@@ -25,8 +26,9 @@ var monitorSet = wire.NewSet(
 	wire.Bind(new(rest.MonitorService), new(*monitor.Service)),
 )
 
-func InitRouterApi(*gorm.Gorm, *gin.Engine) *gin.RouterGroup {
+func InitRouterApi(*config.Config, *gin.Engine) *gin.RouterGroup {
 	wire.Build(
+		gorm.NewGorm,
 		monitorSet,
 		rest.NewRouter,
 	)
