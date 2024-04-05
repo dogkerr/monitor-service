@@ -6,6 +6,7 @@ import (
 	"github.com/ilyakaznacheev/cleanenv"
 )
 
+
 type (
 	// Config -.
 	Config struct {

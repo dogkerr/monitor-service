@@ -21,7 +21,7 @@ type MonitorHandler struct {
 	Service MonitorService
 }
 
-func NewMonitorHandler(rg *gin.RouterGroup, svc MonitorService) {
+func NewMonitorHandler(rg *gin.RouterGroup, svc MonitorService)  {
 	handler := &MonitorHandler{
 		Service: svc,
 	}
