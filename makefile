@@ -37,17 +37,6 @@ docker-rm-volume: ### remove docker volume
 	docker volume rm go-clean-template_pg-data
 .PHONY: docker-rm-volume
 
-linter-golangci: ### check by golangci linter
-	golangci-lint run
-.PHONY: linter-golangci
-
-linter-hadolint: ### check by hadolint linter
-	git ls-files --exclude='Dockerfile*' --ignored | xargs hadolint
-.PHONY: linter-hadolint
-
-linter-dotenv: ### check by dotenv linter
-	dotenv-linter
-.PHONY: linter-dotenv
 
 test: ### run test
 	go test -v -cover -race ./internal/...
@@ -76,6 +65,13 @@ proto:
 	proto/*.proto
 .PHONY: proto
 
+lint:
+	golangci-lint run 
+.PHONY: lint
+
+wire:
+	wire
+.PHONY: wire
 
 #protoc --proto_path=proto --go_out=pb --go_opt=paths=source_relative \
 #	--go-grpc_out=pb --go-grpc_opt=paths=source_relative \

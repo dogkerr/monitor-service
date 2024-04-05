@@ -2,9 +2,8 @@ package domain
 
 import (
 	"time"
-
-	"github.com/google/uuid"
 )
+
 type Action int
 
 const (
@@ -17,10 +16,8 @@ func (s Status) ActionString() string {
 }
 
 type ContainerAction struct {
-	ID uuid.UUID `json:"id"`
-	ContainerId uuid.UUID `json:"container_id"`
-	Timestamp time.Time `json:"timestamp"`
-	Action Action `json:"action"`
+	ID          string    `json:"id"`
+	ContainerId string    `json:"container_id"`
+	Timestamp   time.Time `json:"timestamp"`
+	Action      Action    `json:"action"`
 }
-
-

@@ -26,6 +26,15 @@ type Container struct {
 	ContainerPort int `json:"container_port"`
 	PublicPort int `json:"public_port"`
 	CreatedTime time.Time `json:"created_at"`
+	CpuUsage float64 `json:"cpu_usage"`
+	MemoryUsage float64 `json:"memory_usage"`
+	NetworkIngress float64 `json:"network_ingress_usage"`
+	NetworkEgress float64 `json:"network_egress_usage"`
+	ContainerLifecycles []ContainerLifecycle `json:"all_container_lifecycles"`
+
 }
+
+
+
 
 

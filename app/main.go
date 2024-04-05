@@ -8,6 +8,7 @@ import (
 	"dogker/lintang/monitor-service/pkg/httpserver"
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"os/signal"
 	"syscall"
@@ -51,6 +52,16 @@ func main() {
 
 	// Router
 	di.InitRouterApi(gorm, handler)
+
+	address := fmt.Sprintf("0.0.0.0:%d", "3001")
+	listener, err := net.Listen("tcp", address)
+	if err != nil {
+		zap.L().Fatal("cannot start server: ", zap.Error(err))
+	}
+
+	// GRPC
+	di.InitGrpcMonitorApi("http://localhost:9090", listener)
+
 
 	// Waiting signal
 	interrupt := make(chan os.Signal, 1)

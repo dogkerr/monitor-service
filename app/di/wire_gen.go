@@ -7,12 +7,16 @@
 package di
 
 import (
+	"dogker/lintang/monitor-service/internal/grpc"
 	"dogker/lintang/monitor-service/internal/repository/postgres"
 	"dogker/lintang/monitor-service/internal/rest"
+	"dogker/lintang/monitor-service/internal/webapi"
 	"dogker/lintang/monitor-service/monitor"
+	"dogker/lintang/monitor-service/pb"
 	"dogker/lintang/monitor-service/pkg/gorm"
 	"github.com/gin-gonic/gin"
 	"github.com/google/wire"
+	"net"
 )
 
 // Injectors from wire.go:
@@ -24,7 +28,16 @@ func InitRouterApi(gormGorm *gorm.Gorm, engine *gin.Engine) *gin.RouterGroup {
 	return routerGroup
 }
 
+func InitGrpcMonitorApi(promeAddress string, listener net.Listener) error {
+	prometheusAPIImpl := webapi.NewPrometheusAPI(promeAddress)
+	monitorServerImpl := monitor.NewMonitorServer(prometheusAPIImpl)
+	error2 := grpc.RunGRPCServer(monitorServerImpl, listener)
+	return error2
+}
+
 // wire.go:
 
 // var ProviderSet = wire.NewSet(gorm.NewGorm)
 var monitorSet = wire.NewSet(postgres.NewContainerRepo, monitor.NewService, wire.Bind(new(monitor.ContainerRepository), new(*postgres.ContainerRepository)), wire.Bind(new(rest.MonitorService), new(*monitor.Service)))
+
+var monitorGrpcSet = wire.NewSet(webapi.NewPrometheusAPI, monitor.NewMonitorServer, wire.Bind(new(monitor.PrometheusApi), new(*webapi.PrometheusAPIImpl)), wire.Bind(new(pb.MonitorServiceServer), new(*monitor.MonitorServerImpl)))

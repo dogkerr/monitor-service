@@ -1,9 +1,9 @@
 syntax = "proto3";
 
 package pb;
-import "google/protobuf/empty.proto";
-import "google/protobuf/any.proto";
-import "google/protobuf/timestamp.proto";
+// import "google/protobuf/empty.proto";
+// import "google/protobuf/any.proto";
+// import "google/protobuf/timestamp.proto";
 
 /*
 Api contract:
@@ -39,8 +39,8 @@ enum ContainerStatus {
 message ContainerLifeCycles {
     string id = 1;
     string container_id = 2;
-    google.protobuf.Timestamp start_timme= 3;
-    google.protobuf.Timestamp stop_time = 4;
+    string start_timme= 3;
+    string stop_time = 4;
     float cpu_core  = 5;
     float mem_capacity = 6;
 	uint64 replica = 7;
@@ -56,7 +56,7 @@ message Container {
 	string name = 4;
 	uint64 container_port = 5;
 	uint64 public_port = 6;
-	google.protobuf.Timestamp created_time = 7;
+	string created_time = 7;
 	float cpu_usage = 8;
 	float memory_usage = 9;
 	float network_ingress_usage = 10;
@@ -67,31 +67,31 @@ message Container {
 
 
 message GetAllUserContainerResourceUsageResponse {
-	google.protobuf.Timestamp currentTime = 1;
+	string currentTime = 1;
 	float all_cpu_usage = 2;
 	float all_memory_usage = 3;
 	float all_network_ingress_usage = 4;
 	float all_network_egress_usage = 5;
 	repeated Container user_container =6;
-	google.protobuf.Timestamp fromTime =7;
+	string fromTime =7;
 }
 
 
 message GetUserContainerResourceUsageRequest {
 	string userId = 1;
-	google.protobuf.Timestamp fromTime = 2;
+	string fromTime = 2;
 }
 
 message GetSpecificContainerResourceUsageRequest {
 	string userId = 1;
-	google.protobuf.Timestamp fromTime = 2;
+	string fromTime = 2;
 	string containerId = 3;
 }
 
 message GetSpecificContainerResourceUsageResponse {
-	google.protobuf.Timestamp currentTime = 1;
+	string currentTime = 1;
 	Container user_container = 2;
-	google.protobuf.Timestamp fromTime =7;
+	string fromTime =7;
 
 }
 
