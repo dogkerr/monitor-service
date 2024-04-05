@@ -22,7 +22,7 @@ Api contract:
 
 */
 
-option go_package = "dogker/lintang/monitor-service/pb"
+option go_package = "dogker/lintang/monitor-service/pb";
 
 
 enum ContainerStatus {
@@ -73,23 +73,26 @@ message GetAllUserContainerResourceUsageResponse {
 	float all_network_ingress_usage = 4;
 	float all_network_egress_usage = 5;
 	repeated Container user_container =6;
+	google.protobuf.Timestamp fromTime =7;
 }
 
 
 message GetUserContainerResourceUsageRequest {
 	string userId = 1;
-	google.protobuf.Timestamp currentTime = 2;
+	google.protobuf.Timestamp fromTime = 2;
 }
 
 message GetSpecificContainerResourceUsageRequest {
 	string userId = 1;
-	google.protobuf.Timestamp currentTime = 2;
+	google.protobuf.Timestamp fromTime = 2;
 	string containerId = 3;
 }
 
 message GetSpecificContainerResourceUsageResponse {
 	google.protobuf.Timestamp currentTime = 1;
 	Container user_container = 2;
+	google.protobuf.Timestamp fromTime =7;
+
 }
 
 service MonitorService {
