@@ -5,16 +5,17 @@ import (
 	"net"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
-
-func RunGRPCServer (
+func RunGRPCServer(
 	monitorServer pb.MonitorServiceServer,
 	listener net.Listener,
 ) error {
-// GRPC Server
+	// GRPC Server
 	grpcServer := grpc.NewServer()
 	pb.RegisterMonitorServiceServer(grpcServer, monitorServer)
+	reflection.Register(grpcServer)
+
 	return grpcServer.Serve(listener)
 }
-

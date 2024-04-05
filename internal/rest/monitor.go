@@ -34,9 +34,9 @@ func NewMonitorHandler(rg *gin.RouterGroup, svc MonitorService)  {
 }
 
 func (m *MonitorHandler) TesDoang(c *gin.Context) {
-	tesResult, _ := m.Service.TesDoang(c)
+	tesResult, err := m.Service.TesDoang(c)
 
-	c.JSON(http.StatusOK, tesResult)
+	c.JSON(getStatusCode(err), tesResult)
 }
 func getStatusCode(err error) int {
 	if err == nil {

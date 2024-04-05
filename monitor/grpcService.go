@@ -7,10 +7,14 @@ import (
 	"time"
 
 	"go.uber.org/zap"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type PrometheusApi interface {
-	GetUserContainerResourceUsageRequest(ctx context.Context, userId string, fromTimeIn string) (domain.Prometheus, error)
+	GetUserContainerResourceUsageRequest(ctx context.Context, userId string, fromTimeIn *timestamppb.Timestamp,
+	) (domain.Prometheus, error)
 }
 
 type MonitorServerImpl struct {
@@ -33,15 +37,18 @@ func (server *MonitorServerImpl) GetAllUserContainerResourceUsage(
 	promeQueryRes, err := server.prome.GetUserContainerResourceUsageRequest(ctx, userId, fromTime)
 	if err != nil {
 		zap.L().Error("gagal query prometheus!", zap.Error(err))
+		return &pb.GetAllUserContainerResourceUsageResponse{}, status.Errorf(codes.InvalidArgument, "fromTime is not in the right format (RFC3399): %v", err)
 	}
+	now := time.Now()
+	start := now.AddDate(0, -1, 0)
 
 	var usersContainer []*pb.Container
 	var ctLifecycles []*pb.ContainerLifeCycles
 	ctLifecycles = append(ctLifecycles, &pb.ContainerLifeCycles{
 		Id:          "asd",
 		ContainerId: "12",
-		StartTimme:  "120",
-		StopTime:    "12",
+		StartTime:   timestamppb.New(start),
+		StopTime:    timestamppb.Now(),
 		CpuCore:     4.0,
 		MemCapacity: 1.0,
 		Replica:     2,
@@ -53,7 +60,7 @@ func (server *MonitorServerImpl) GetAllUserContainerResourceUsage(
 		Name:                   "tes",
 		ContainerPort:          1000,
 		PublicPort:             1000,
-		CreatedTime:            time.Now().Format(time.RFC3339),
+		CreatedTime:            timestamppb.Now(),
 		CpuUsage:               0,
 		MemoryUsage:            0,
 		NetworkIngressUsage:    0,
@@ -62,13 +69,13 @@ func (server *MonitorServerImpl) GetAllUserContainerResourceUsage(
 	})
 
 	res := &pb.GetAllUserContainerResourceUsageResponse{
-		CurrentTime:            promeQueryRes.CurrentTime.Format(time.RFC3339),
+		CurrentTime:            promeQueryRes.CurrentTime,
 		AllCpuUsage:            promeQueryRes.AllCpuUsage,
 		AllMemoryUsage:         promeQueryRes.AllMemoryUsage,
 		AllNetworkIngressUsage: promeQueryRes.AllNetworkIngressUsage,
 		AllNetworkEgressUsage:  promeQueryRes.AllNetworkEgressUsage,
 		UserContainer:          usersContainer,
-		FromTime:               promeQueryRes.FromTime.Format(time.RFC3339),
+		FromTime:               promeQueryRes.FromTime,
 	}
 	return res, nil
 
@@ -77,33 +84,3 @@ func (server *MonitorServerImpl) GetAllUserContainerResourceUsage(
 func (server *MonitorServerImpl) GetSpecificContainerResourceUsage(ctx context.Context, req *pb.GetSpecificContainerResourceUsageRequest) (*pb.GetSpecificContainerResourceUsageResponse, error) {
 	return &pb.GetSpecificContainerResourceUsageResponse{}, nil
 }
-
-
-/*
-
-	var usersContainer []*pb.Container
-	var ctLifecycles []*pb.ContainerLifeCycles
-	ctLifecycles = append(ctLifecycles, &pb.ContainerLifeCycles{
-		Id:          "asd",
-		ContainerId: "12",
-		StartTimme:  "120",
-		StopTime:    "12",
-		CpuCore:     4.0,
-		MemCapacity: 1.0,
-		Replica:     2,
-	})
-	usersContainer = append(usersContainer, &pb.Container{
-		Id:                     "tes",
-		ImageUrl:               "tes",
-		Status:                 pb.ContainerStatus_RUN,
-		Name:                   "tes",
-		ContainerPort:          1000,
-		PublicPort:             1000,
-		CreatedTime:            time.Now().String(),
-		CpuUsage:               0,
-		MemoryUsage:            0,
-		NetworkIngressUsage:    0,
-		NetworkEgressUsage:     0,
-		AllContainerLifecycles: ctLifecycles,
-	})
-*/

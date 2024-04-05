@@ -70,7 +70,7 @@ lint:
 .PHONY: lint
 
 wire:
-	wire
+	wire ./app/di/
 .PHONY: wire
 
 #protoc --proto_path=proto --go_out=pb --go_opt=paths=source_relative \
