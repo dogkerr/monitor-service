@@ -2,17 +2,16 @@ package postgres
 
 import (
 	"context"
-
-	"gorm.io/gorm"
+	"dogker/lintang/monitor-service/pkg/gorm"
 )
 
 
 type ContainerRepository struct {
-	DB *gorm.DB
+	DB *gorm.Gorm
 }
 
 
-func NewContainerRepo(db *gorm.DB) *ContainerRepository {
+func NewContainerRepo(db *gorm.Gorm) *ContainerRepository {
 	return &ContainerRepository{db}
 }
 
