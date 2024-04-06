@@ -35,13 +35,15 @@ func (p *PrometheusAPIImpl) GetUserContainerResourceUsageRequest(ctx context.Con
 	defer cancel()
 
 	r := v1.Range{
-		Start: time.Now().Add(-time.Hour * 24),
+		Start: time.Now().AddDate(0, 0, -30),
 		End:   time.Now(),
-		Step:  time.Minute,
+		Step:  time.Hour,
 	}
-	seconds := fmt.Sprintf("%f", (time.Now().Sub(fromTimeIn.AsTime())).Abs().Seconds())
-	// cpuResults, warnings, err := api.QueryRange(ctx, "sum(rate(container_cpu_usage_seconds_total{container_label_user_id=~\""+userId+"\"}[30d]))  * 30 * 24 * 3600 / (12 * 3600)", r, v1.WithTimeout(5*time.Second))
-	cpuResults, warnings, err := api.QueryRange(ctx, "sum(rate(container_cpu_usage_seconds_total{container_label_user_id=~\""+userId+"\"}[1h])) * 100 * "+seconds+" / 3600", r, v1.WithTimeout(5*time.Second))
+	seconds := fmt.Sprintf("%f", (time.Since(fromTimeIn.AsTime())).Seconds())
+	
+
+	// cpuResults, warnings, err := api.QueryRange(ctx, "sum(rate(container_cpu_usage_seconds_total{container_label_user_id=~\""+userId+"\"}[1h]))  * 30 * 24 * 3600 / (12 * 3600)", r, v1.WithTimeout(5*time.Second))
+	cpuResults, warnings, err := api.QueryRange(ctx, "sum(rate(container_cpu_usage_seconds_total{container_label_user_id=~\""+userId+"\"}[1h])) * 100 * "+seconds+" /3600", r, v1.WithTimeout(5*time.Second))
 	if err != nil {
 		zap.L().Error("Gagal mendapatkan query CPU Usage", zap.Error(err))
 		return domain.Prometheus{}, err
@@ -50,7 +52,7 @@ func (p *PrometheusAPIImpl) GetUserContainerResourceUsageRequest(ctx context.Con
 	if len(warnings) > 0 {
 		zap.L().Warn("Warnings: pas query CPU Usage\n")
 	}
-	memoryResults, warnings, err := api.QueryRange(ctx, "sum(avg_over_time(container_memory_usage_bytes{container_label_user_id=~\""+userId+"\"}[30d])) * 30*24*3600 / 3600 / (1024^3)", r, v1.WithTimeout(5*time.Second))
+	memoryResults, warnings, err := api.QueryRange(ctx, "sum(avg_over_time(container_memory_usage_bytes{container_label_user_id=~\""+userId+"\"}[1h])) * 30*24*3600 / 3600 / (1024^3)", r, v1.WithTimeout(5*time.Second))
 
 	if err != nil {
 		zap.L().Error("Gagal mendapatkan query Memory Usage", zap.Error(err))
@@ -61,7 +63,7 @@ func (p *PrometheusAPIImpl) GetUserContainerResourceUsageRequest(ctx context.Con
 		zap.L().Warn("Warnings: pas query CPU Usage\n")
 	}
 
-	networkIngress, warnings, err := api.QueryRange(ctx, "sum(increase(container_network_receive_bytes_total{container_label_user_id=~\""+userId+"\"}[30d])) / 1024", r, v1.WithTimeout(5*time.Second))
+	networkIngress, warnings, err := api.QueryRange(ctx, "sum(container_network_receive_bytes_total{container_label_user_id=~\""+userId+"\"}) / 1024", r, v1.WithTimeout(5*time.Second))
 
 	if err != nil {
 		zap.L().Error("Gagal mendapatkan query Network Ingress Usage", zap.Error(err))
@@ -72,7 +74,7 @@ func (p *PrometheusAPIImpl) GetUserContainerResourceUsageRequest(ctx context.Con
 		zap.L().Warn("Warnings: pas query CPU Usage\n")
 	}
 
-	networkEgress, warnings, err := api.QueryRange(ctx, "sum(increase(container_network_transmit_bytes_total{container_label_user_id=~\""+userId+"\"}[30m])) / 1024", r, v1.WithTimeout(5*time.Second))
+	networkEgress, warnings, err := api.QueryRange(ctx, "sum(container_network_transmit_bytes_total{container_label_user_id=~\""+userId+"\"}) / 1024", r, v1.WithTimeout(5*time.Second))
 	if err != nil {
 		zap.L().Error("Gagal mendapatkan query Network Egress Usage", zap.Error(err))
 		return domain.Prometheus{}, err
