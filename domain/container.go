@@ -9,12 +9,12 @@ import (
 type Status int
 
 const (
-	RUNNING Status = iota + 1
+	RUN Status = iota + 1
 	STOPPED
 )
 
 func (s Status) String() string {
-	return [...]string{"RUNNING", "STOPPED"}[s-1]
+	return [...]string{"RUN", "STOPPED"}[s-1]
 }
 
 type Container struct {
@@ -26,12 +26,9 @@ type Container struct {
 	ContainerPort int `json:"container_port"`
 	PublicPort int `json:"public_port"`
 	CreatedTime time.Time `json:"created_at"`
-	CpuUsage float64 `json:"cpu_usage"`
-	MemoryUsage float64 `json:"memory_usage"`
-	NetworkIngress float64 `json:"network_ingress_usage"`
-	NetworkEgress float64 `json:"network_egress_usage"`
+	TerminatedTime time.Time `json:"terminated_time"`
 	ContainerLifecycles []ContainerLifecycle `json:"all_container_lifecycles"`
-
+	ServiceId string `json:"serviceId"`
 }
 
 

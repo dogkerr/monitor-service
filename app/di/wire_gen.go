@@ -9,12 +9,12 @@ package di
 import (
 	"dogker/lintang/monitor-service/config"
 	"dogker/lintang/monitor-service/internal/grpc"
-	"dogker/lintang/monitor-service/internal/repository/postgres"
+	postgres2 "dogker/lintang/monitor-service/internal/repository/postgres"
 	"dogker/lintang/monitor-service/internal/rest"
 	"dogker/lintang/monitor-service/internal/webapi"
 	"dogker/lintang/monitor-service/monitor"
 	"dogker/lintang/monitor-service/pb"
-	"dogker/lintang/monitor-service/pkg/gorm"
+	"dogker/lintang/monitor-service/pkg/postgres"
 	"github.com/gin-gonic/gin"
 	"github.com/google/wire"
 	"net"
@@ -23,16 +23,18 @@ import (
 // Injectors from wire.go:
 
 func InitRouterApi(configConfig *config.Config, engine *gin.Engine) *gin.RouterGroup {
-	gormGorm := gorm.NewGorm(configConfig)
-	containerRepository := postgres.NewContainerRepo(gormGorm)
-	service := monitor.NewService(containerRepository)
+	postgresPostgres := postgres.NewPostgres(configConfig)
+	containerRepositoryI := postgres2.NewContainerRepo(postgresPostgres)
+	service := monitor.NewService(containerRepositoryI)
 	routerGroup := rest.NewRouter(engine, service)
 	return routerGroup
 }
 
-func InitGrpcMonitorApi(promeAddress string, listener net.Listener) error {
+func InitGrpcMonitorApi(promeAddress string, listener net.Listener, cfg *config.Config) error {
 	prometheusAPIImpl := webapi.NewPrometheusAPI(promeAddress)
-	monitorServerImpl := monitor.NewMonitorServer(prometheusAPIImpl)
+	postgresPostgres := postgres.NewPostgres(cfg)
+	containerRepositoryI := postgres2.NewContainerRepo(postgresPostgres)
+	monitorServerImpl := monitor.NewMonitorServer(prometheusAPIImpl, containerRepositoryI)
 	error2 := grpc.RunGRPCServer(monitorServerImpl, listener)
 	return error2
 }
@@ -40,6 +42,6 @@ func InitGrpcMonitorApi(promeAddress string, listener net.Listener) error {
 // wire.go:
 
 // var ProviderSet = wire.NewSet(gorm.NewGorm)
-var monitorSet = wire.NewSet(postgres.NewContainerRepo, monitor.NewService, wire.Bind(new(monitor.ContainerRepository), new(*postgres.ContainerRepository)), wire.Bind(new(rest.MonitorService), new(*monitor.Service)))
+var monitorSet = wire.NewSet(postgres2.NewContainerRepo, monitor.NewService, wire.Bind(new(monitor.ContainerRepository), new(*postgres2.ContainerRepositoryI)), wire.Bind(new(rest.MonitorService), new(*monitor.Service)))
 
-var monitorGrpcSet = wire.NewSet(webapi.NewPrometheusAPI, monitor.NewMonitorServer, wire.Bind(new(monitor.PrometheusApi), new(*webapi.PrometheusAPIImpl)), wire.Bind(new(pb.MonitorServiceServer), new(*monitor.MonitorServerImpl)))
+var monitorGrpcSet = wire.NewSet(postgres2.NewContainerRepo, wire.Bind(new(monitor.ContainerRepository), new(*postgres2.ContainerRepositoryI)), webapi.NewPrometheusAPI, monitor.NewMonitorServer, wire.Bind(new(monitor.PrometheusApi), new(*webapi.PrometheusAPIImpl)), wire.Bind(new(pb.MonitorServiceServer), new(*monitor.MonitorServerImpl)))

@@ -54,11 +54,12 @@ func main() {
 	}
 
 	// GRPC
-	err = di.InitGrpcMonitorApi("http://localhost:9090", listener)
+	err = di.InitGrpcMonitorApi("http://localhost:9090", listener, cfg)
 	if err != nil {
 		zap.L().Fatal("cannot start GRPC  Server", zap.Error(err))
 	}
 
+	
 	// Waiting signal
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
