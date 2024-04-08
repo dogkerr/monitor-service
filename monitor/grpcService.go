@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"time"
 
-	_ "github.com/jackc/pgx/v5/stdlib"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -18,7 +17,7 @@ import (
 type PrometheusApi interface {
 	GetUserContainerResourceUsageRequest(ctx context.Context, userId string, fromTimeIn *timestamppb.Timestamp,
 	) (*domain.Prometheus, error)
-	GetMetricsByServiceId(ctx context.Context, serviceId string, fromTimeIn *timestamppb.Timestamp) (*domain.Prometheus, error)
+	GetMetricsByServiceId(ctx context.Context, serviceId string, fromTimeIn *timestamppb.Timestamp) (*domain.Metric, error)
 }
 
 type ContainerRepository interface {
@@ -74,7 +73,7 @@ func (server *MonitorServerImpl) GetAllUserContainerResourceUsage(
 				StopTime:    timestamppb.New(life.StopTime),
 
 				Replica: life.Replica,
-				Status:  life.Status.String(),
+				Status:  pb.ContainerStatus(life.Status),
 			})
 		}
 
@@ -86,10 +85,10 @@ func (server *MonitorServerImpl) GetAllUserContainerResourceUsage(
 			ContainerPort:          uint64(ctr.ContainerPort),
 			PublicPort:             uint64(ctr.PublicPort),
 			CreatedTime:            timestamppb.New(ctr.CreatedTime),
-			CpuUsage:               ctrMetrics.AllCpuUsage,
-			MemoryUsage:            ctrMetrics.AllMemoryUsage,
-			NetworkIngressUsage:    ctrMetrics.AllNetworkIngressUsage,
-			NetworkEgressUsage:     ctrMetrics.AllNetworkEgressUsage,
+			CpuUsage:               ctrMetrics.CpuUsage,
+			MemoryUsage:            ctrMetrics.MemoryUsage,
+			NetworkIngressUsage:    ctrMetrics.NetworkIngressUsage,
+			NetworkEgressUsage:     ctrMetrics.NetworkEgressUsage,
 			ServiceId:              ctr.ServiceId,
 			TerminatedTime:         timestamppb.New(ctr.TerminatedTime),
 			AllContainerLifecycles: ctLifecycles,
@@ -141,7 +140,7 @@ func (server *MonitorServerImpl) GetSpecificContainerResourceUsage(
 			StopTime:    timestamppb.New(life.StopTime),
 
 			Replica: life.Replica,
-			Status:  life.Status.String(),
+			Status:  pb.ContainerStatus(life.Status),
 		})
 	}
 
@@ -156,10 +155,10 @@ func (server *MonitorServerImpl) GetSpecificContainerResourceUsage(
 			ContainerPort:          uint64(ctr.ContainerPort),
 			PublicPort:             uint64(ctr.PublicPort),
 			CreatedTime:            timestamppb.New(ctr.CreatedTime),
-			CpuUsage:               ctrMetrics.AllCpuUsage,
-			MemoryUsage:            ctrMetrics.AllMemoryUsage,
-			NetworkIngressUsage:    ctrMetrics.AllNetworkIngressUsage,
-			NetworkEgressUsage:     ctrMetrics.AllNetworkEgressUsage,
+			CpuUsage:               ctrMetrics.CpuUsage,
+			MemoryUsage:            ctrMetrics.MemoryUsage,
+			NetworkIngressUsage:    ctrMetrics.NetworkIngressUsage,
+			NetworkEgressUsage:     ctrMetrics.NetworkEgressUsage,
 			ServiceId:              ctr.ServiceId,
 			TerminatedTime:         timestamppb.New(ctr.TerminatedTime),
 			AllContainerLifecycles: ctLifes,
