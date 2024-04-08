@@ -15,6 +15,7 @@ type (
 		Redis    `yaml:"redis"`
 		Postgres `yaml:"postgres"`
 		LogConfig `yaml:"logger"`
+		Prometheus `yaml:"prometheus"`
 	}
 
 	// App -.
@@ -44,6 +45,10 @@ type (
 		// MaxSize    int    `json:"maxsize" yaml:"maxsize"`
 		MaxAge     int    `json:"max_age" yaml:"max_age"`
 		MaxBackups int    `json:"max_backups" yaml:"max_backups"`
+	}
+
+	Prometheus struct {
+		Url string `json:"url" yaml:"url"`
 	}
 )
 

@@ -46,3 +46,10 @@ func NewPostgres(cfg *config.Config) *Postgres {
 
 	return &Postgres{db}
 }
+
+
+
+func ClosePostgres(pg *sql.DB) {
+	_ = pg.Close()
+
+}

@@ -14,6 +14,11 @@
 
 ```
 
+
+4. tambahin serviceID swarm di tabel container (harusnya container service yg namabahin)
+
+5. go run main.go
+6. jalanin client & kirim request 
 ----
 query prome
 ```

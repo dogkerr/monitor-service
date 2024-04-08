@@ -13,11 +13,11 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-type PrometheusAPIImpl struct {
+type PrometheusAPI struct {
 	client *api.Client
 }
 
-func NewPrometheusAPI(adress string) *PrometheusAPIImpl {
+func NewPrometheusAPI(adress string) *PrometheusAPI {
 	conf := api.Config{
 		Address: adress,
 	}
@@ -26,13 +26,13 @@ func NewPrometheusAPI(adress string) *PrometheusAPIImpl {
 		zap.L().Fatal("error pas init prometheus client", zap.Error(err))
 	}
 
-	return &PrometheusAPIImpl{client: &promeClient}
+	return &PrometheusAPI{client: &promeClient}
 }
 
 /*
 	Desc: mendapatkan metrics untuk semua container milik user
 */
-func (p *PrometheusAPIImpl) GetUserContainerResourceUsageRequest(ctx context.Context, userId string, fromTimeIn *timestamppb.Timestamp) (domain.Prometheus, error) {
+func (p *PrometheusAPI) GetUserContainerResourceUsageRequest(ctx context.Context, userId string, fromTimeIn *timestamppb.Timestamp) (*domain.Prometheus, error) {
 	api := v1.NewAPI(*p.client)
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
@@ -48,7 +48,7 @@ func (p *PrometheusAPIImpl) GetUserContainerResourceUsageRequest(ctx context.Con
 	cpuResults, warnings, err := api.QueryRange(ctx, "sum(rate(container_cpu_usage_seconds_total{container_label_user_id=~\""+userId+"\"}[1h])) * 100 * "+seconds+" /3600", r, v1.WithTimeout(5*time.Second))
 	if err != nil {
 		zap.L().Error("Gagal mendapatkan query CPU Usage", zap.Error(err))
-		return domain.Prometheus{}, err
+		return nil, err
 	}
 
 	if len(warnings) > 0 {
@@ -58,7 +58,7 @@ func (p *PrometheusAPIImpl) GetUserContainerResourceUsageRequest(ctx context.Con
 
 	if err != nil {
 		zap.L().Error("Gagal mendapatkan query Memory Usage", zap.Error(err))
-		return domain.Prometheus{}, err
+		return nil, err
 	}
 
 	if len(warnings) > 0 {
@@ -69,7 +69,7 @@ func (p *PrometheusAPIImpl) GetUserContainerResourceUsageRequest(ctx context.Con
 
 	if err != nil {
 		zap.L().Error("Gagal mendapatkan query Network Ingress Usage", zap.Error(err))
-		return domain.Prometheus{}, err
+		return nil, err
 	}
 
 	if len(warnings) > 0 {
@@ -79,7 +79,7 @@ func (p *PrometheusAPIImpl) GetUserContainerResourceUsageRequest(ctx context.Con
 	networkEgress, warnings, err := api.QueryRange(ctx, "sum(container_network_transmit_bytes_total{container_label_user_id=~\""+userId+"\"}) / 1024", r, v1.WithTimeout(5*time.Second))
 	if err != nil {
 		zap.L().Error("Gagal mendapatkan query Network Egress Usage", zap.Error(err))
-		return domain.Prometheus{}, err
+		return nil, err
 	}
 
 	if len(warnings) > 0 {
@@ -118,14 +118,14 @@ func (p *PrometheusAPIImpl) GetUserContainerResourceUsageRequest(ctx context.Con
 			promeRes.AllNetworkEgressUsage = float32(s.Values[len(s.Values)-1].Value)
 		}
 	}
-	return promeRes, nil
+	return &promeRes, nil
 }
 
 // TODO: bikin Get Metrics Usage Per User
 /*
 	Desc: mendapatkan metrics untuk container dg serviceID tertentu
 */
-func (p *PrometheusAPIImpl) GetMetricsByServiceId(ctx context.Context, serviceId string, fromTimeIn *timestamppb.Timestamp) (domain.Prometheus, error) {
+func (p *PrometheusAPI) GetMetricsByServiceId(ctx context.Context, serviceId string, fromTimeIn *timestamppb.Timestamp) (*domain.Prometheus, error) {
 	api := v1.NewAPI(*p.client)
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
@@ -141,7 +141,7 @@ func (p *PrometheusAPIImpl) GetMetricsByServiceId(ctx context.Context, serviceId
 	cpuResults, warnings, err := api.QueryRange(ctx, "sum(rate(container_cpu_usage_seconds_total{container_label_com_docker_swarm_service_id=~\""+serviceId+"\"}[1h])) * 100 * "+seconds+" /3600", r, v1.WithTimeout(5*time.Second))
 	if err != nil {
 		zap.L().Error("Gagal mendapatkan query CPU Usage", zap.Error(err))
-		return domain.Prometheus{}, err
+		return nil, err
 	}
 
 	if len(warnings) > 0 {
@@ -151,7 +151,7 @@ func (p *PrometheusAPIImpl) GetMetricsByServiceId(ctx context.Context, serviceId
 
 	if err != nil {
 		zap.L().Error("Gagal mendapatkan query Memory Usage", zap.Error(err))
-		return domain.Prometheus{}, err
+		return nil, err
 	}
 
 	if len(warnings) > 0 {
@@ -162,7 +162,7 @@ func (p *PrometheusAPIImpl) GetMetricsByServiceId(ctx context.Context, serviceId
 
 	if err != nil {
 		zap.L().Error("Gagal mendapatkan query Network Ingress Usage", zap.Error(err))
-		return domain.Prometheus{}, err
+		return nil, err
 	}
 
 	if len(warnings) > 0 {
@@ -172,7 +172,7 @@ func (p *PrometheusAPIImpl) GetMetricsByServiceId(ctx context.Context, serviceId
 	networkEgress, warnings, err := api.QueryRange(ctx, "sum(container_network_transmit_bytes_total{container_label_com_docker_swarm_service_id=~\""+serviceId+"\"}) / 1024", r, v1.WithTimeout(5*time.Second))
 	if err != nil {
 		zap.L().Error("Gagal mendapatkan query Network Egress Usage", zap.Error(err))
-		return domain.Prometheus{}, err
+		return nil, err
 	}
 
 	if len(warnings) > 0 {
@@ -211,5 +211,5 @@ func (p *PrometheusAPIImpl) GetMetricsByServiceId(ctx context.Context, serviceId
 			promeRes.AllNetworkEgressUsage = float32(s.Values[len(s.Values)-1].Value)
 		}
 	}
-	return promeRes, nil
+	return &promeRes, nil
 }

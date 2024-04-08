@@ -17,7 +17,7 @@ type ResponseError struct {
 
 type MonitorService interface {
 	TesDoang(ctx context.Context) (string, error)
-	GetAllUserContainerService(ctx context.Context, userId string) ([]domain.Container, error)
+	GetAllUserContainerService(ctx context.Context, userId string) (*[]domain.Container, error)
 }
 
 type MonitorHandler struct {
@@ -67,7 +67,7 @@ func (m *MonitorHandler) GetAllUserContainerHandler(c *gin.Context) {
 	userId := c.Query("userId")
 	sv, err := m.Service.GetAllUserContainerService(c, userId)
 	var res []serviceResponse
-	for _, s := range sv {
+	for _, s := range *sv {
 
 		var lifes []ContainerLifecycleRes
 		for _, l := range s.ContainerLifecycles {

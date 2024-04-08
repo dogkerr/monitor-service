@@ -24,11 +24,11 @@ func NewService(c ContainerRepository) *Service {
 }
 
 
-func (m *Service) GetAllUserContainerService(ctx context.Context, userId string) ([]domain.Container, error) {
+func (m *Service) GetAllUserContainerService(ctx context.Context, userId string) (*[]domain.Container, error) {
 	res, err := m.containerRepo.GetAllUserContainer(ctx, userId)
 	if err != nil {
 		zap.L().Debug("m.containerRepo.GetAllUserContainer", zap.String("userID", userId))
-		return []domain.Container{}, nil
+		return nil, nil
 	}
 	return res, nil
 } 

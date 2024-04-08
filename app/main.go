@@ -5,9 +5,9 @@ import (
 	"dogker/lintang/monitor-service/config"
 	"dogker/lintang/monitor-service/internal/rest/middleware"
 	"dogker/lintang/monitor-service/pkg/httpserver"
+	"dogker/lintang/monitor-service/pkg/postgres"
 	"fmt"
 	"log"
-	"net"
 	"os"
 	"os/signal"
 	"syscall"
@@ -40,26 +40,12 @@ func main() {
 		log.Fatalf("Config error: %s", err)
 	}
 
-	// HTTP Server
 	handler := gin.New()
 	httpServer := httpserver.New(handler, httpserver.Port("5000"))
 
-	// Router
-	di.InitRouterApi(cfg, handler)
+	// init app
+	pg := di.InitApp(cfg, handler)
 
-	address := "0.0.0.0:5001"
-	listener, err := net.Listen("tcp", address)
-	if err != nil {
-		zap.L().Fatal("cannot start server: ", zap.Error(err))
-	}
-
-	// GRPC
-	err = di.InitGrpcMonitorApi("http://localhost:9090", listener, cfg)
-	if err != nil {
-		zap.L().Fatal("cannot start GRPC  Server", zap.Error(err))
-	}
-
-	
 	// Waiting signal
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
@@ -67,12 +53,13 @@ func main() {
 	select {
 	case s := <-interrupt:
 		zap.L().Fatal("app - Run - signal: " + s.String())
-	case err = <-httpServer.Notify():
+	case err := <-httpServer.Notify():
 		zap.L().Fatal(fmt.Errorf("app - Run - httpServer.Notify: %w", err).Error())
 	}
 
 	// Shutdown
 	err = httpServer.Shutdown()
+	postgres.ClosePostgres(pg.Pool)
 	if err != nil {
 		zap.L().Fatal(fmt.Errorf("app - Run - httpServer.Shutdown: %w", err).Error())
 	}
