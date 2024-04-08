@@ -15,6 +15,7 @@ type (
 		Redis    `yaml:"redis"`
 		Postgres `yaml:"postgres"`
 		LogConfig `yaml:"logger"`
+		Prometheus `yaml:"prometheus"`
 	}
 
 	// App -.
@@ -45,6 +46,10 @@ type (
 		MaxAge     int    `json:"max_age" yaml:"max_age"`
 		MaxBackups int    `json:"max_backups" yaml:"max_backups"`
 	}
+
+	Prometheus struct {
+		Url string `json:"url" yaml:"url"`
+	}
 )
 
 // NewConfig returns app config.
@@ -52,7 +57,7 @@ func NewConfig() (*Config, error) {
 	cfg := &Config{}
 
 	// err := cleanenv.ReadConfig("./config/config.yml", cfg)
-	err := cleanenv.ReadConfig("../config/config.yml", cfg)
+	err := cleanenv.ReadConfig("./config/config.yml", cfg)
 
 	// err = cleanenv.ReadConfig("./.env", cfg)
 	// if err != nil {

@@ -34,18 +34,13 @@ enum ContainerStatus {
 
 
 
-
-
-
-
 message ContainerLifeCycles {
     string id = 1;
     string container_id = 2;
     google.protobuf.Timestamp start_time= 3;
     google.protobuf.Timestamp stop_time = 4;
-    float cpu_core  = 5;
-    float mem_capacity = 6;
 	uint64 replica = 7;
+	ContainerStatus status = 8;
 }
 
 
@@ -63,7 +58,10 @@ message Container {
 	float memory_usage = 9;
 	float network_ingress_usage = 10;
 	float network_egress_usage = 11;
-	repeated ContainerLifeCycles all_container_lifecycles = 12;
+	string service_id = 12;
+	google.protobuf.Timestamp terminatedTime = 13;
+	repeated ContainerLifeCycles all_container_lifecycles = 14;
+	
 }
 
 

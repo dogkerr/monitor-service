@@ -2,15 +2,16 @@ package monitor
 
 import (
 	"context"
+	"dogker/lintang/monitor-service/domain"
 
 	"go.uber.org/zap"
 )
 
-type ContainerRepository interface {
-	GetById(ctx context.Context) string
-}
-
-
+// type ContainerRepository interface {
+// 	GetById(ctx context.Context) string
+// 	GetAllUserContainer(ctx context.Context, userId string) ([]domain.Container, error)
+	
+// }
 
 type Service struct {
 	containerRepo ContainerRepository
@@ -21,6 +22,16 @@ func NewService(c ContainerRepository) *Service {
 		containerRepo: c,
 	}
 }
+
+
+func (m *Service) GetAllUserContainerService(ctx context.Context, userId string) (*[]domain.Container, error) {
+	res, err := m.containerRepo.GetAllUserContainer(ctx, userId)
+	if err != nil {
+		zap.L().Debug("m.containerRepo.GetAllUserContainer", zap.String("userID", userId))
+		return nil, nil
+	}
+	return res, nil
+} 
 
 func (m *Service) TesDoang(ctx context.Context) (string, error) {
 

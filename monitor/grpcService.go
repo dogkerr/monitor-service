@@ -4,6 +4,8 @@ import (
 	"context"
 	"dogker/lintang/monitor-service/domain"
 	"dogker/lintang/monitor-service/pb"
+	"errors"
+	"fmt"
 	"time"
 
 	"go.uber.org/zap"
@@ -14,18 +16,27 @@ import (
 
 type PrometheusApi interface {
 	GetUserContainerResourceUsageRequest(ctx context.Context, userId string, fromTimeIn *timestamppb.Timestamp,
-	) (domain.Prometheus, error)
+	) (*domain.Prometheus, error)
+	GetMetricsByServiceId(ctx context.Context, serviceId string, fromTimeIn *timestamppb.Timestamp) (*domain.Metric, error)
+}
+
+type ContainerRepository interface {
+	Get(ctx context.Context, cId string) (*domain.Container, error)
+	GetAllUserContainer(ctx context.Context, userId string) (*[]domain.Container, error)
 }
 
 type MonitorServerImpl struct {
 	pb.UnimplementedMonitorServiceServer
-	prome PrometheusApi
+	prome         PrometheusApi
+	containerRepo ContainerRepository
 }
 
-func NewMonitorServer(prome PrometheusApi) *MonitorServerImpl {
-	return &MonitorServerImpl{prome: prome}
+func NewMonitorServer(prome PrometheusApi, cRepo ContainerRepository) *MonitorServerImpl {
+	return &MonitorServerImpl{prome: prome, containerRepo: cRepo}
 }
 
+// grpc service buat billing service
+// intinya dapetin metrics usage untuk keseluruhan container user dan metrics setiap contianer yang dipunya user
 func (server *MonitorServerImpl) GetAllUserContainerResourceUsage(
 	ctx context.Context,
 	req *pb.GetUserContainerResourceUsageRequest,
@@ -36,37 +47,54 @@ func (server *MonitorServerImpl) GetAllUserContainerResourceUsage(
 
 	promeQueryRes, err := server.prome.GetUserContainerResourceUsageRequest(ctx, userId, fromTime)
 	if err != nil {
-		zap.L().Error("gagal query prometheus!", zap.Error(err))
-		return &pb.GetAllUserContainerResourceUsageResponse{}, status.Errorf(codes.InvalidArgument, "fromTime is not in the right format (RFC3399): %v", err)
+		zap.L().Error("server.prome.GetUserContainerResourceUsageRequest", zap.Error(err))
+		return nil, status.Errorf(codes.InvalidArgument, "server.prome.GetUSerContainerRequest: %v", err)
 	}
-	now := time.Now()
-	start := now.AddDate(0, -1, 0)
 
 	var usersContainer []*pb.Container
-	var ctLifecycles []*pb.ContainerLifeCycles
-	ctLifecycles = append(ctLifecycles, &pb.ContainerLifeCycles{
-		Id:          "asd",
-		ContainerId: "12",
-		StartTime:   timestamppb.New(start),
-		StopTime:    timestamppb.Now(),
-		CpuCore:     4.0,
-		MemCapacity: 1.0,
-		Replica:     2,
-	})
-	usersContainer = append(usersContainer, &pb.Container{
-		Id:                     "tes",
-		ImageUrl:               "tes",
-		Status:                 pb.ContainerStatus_RUN,
-		Name:                   "tes",
-		ContainerPort:          1000,
-		PublicPort:             1000,
-		CreatedTime:            timestamppb.Now(),
-		CpuUsage:               0,
-		MemoryUsage:            0,
-		NetworkIngressUsage:    0,
-		NetworkEgressUsage:     0,
-		AllContainerLifecycles: ctLifecycles,
-	})
+	allUserCtr, err := server.containerRepo.GetAllUserContainer(ctx, userId)
+	if err != nil {
+		zap.L().Error("server.containerRepo.GetAllUserContainer", zap.Error(err))
+		return nil, status.Errorf(codes.InvalidArgument, "User tidak pernah membuat container ke dogker %v", err)
+	}
+
+	for _, ctr := range *allUserCtr {
+		ctrMetrics, err := server.prome.GetMetricsByServiceId(ctx, ctr.ServiceId, fromTime)
+		if err != nil {
+			zap.L().Error("server.prome.GetMetricsByServiceId", zap.Error(err))
+			return nil, status.Errorf(codes.InvalidArgument, "Gagal mendapatkan metrics dari container %v", err)
+		}
+		var ctLifecycles []*pb.ContainerLifeCycles
+		for _, life := range ctr.ContainerLifecycles {
+			ctLifecycles = append(ctLifecycles, &pb.ContainerLifeCycles{
+				Id:          life.ID.String(),
+				ContainerId: ctr.ID.String(),
+				StartTime:   timestamppb.New(life.StartTime),
+				StopTime:    timestamppb.New(life.StopTime),
+
+				Replica: life.Replica,
+				Status:  pb.ContainerStatus(life.Status),
+			})
+		}
+
+		usersContainer = append(usersContainer, &pb.Container{
+			Id:                     ctr.ID.String(),
+			ImageUrl:               ctr.ImageUrl,
+			Status:                 pb.ContainerStatus(ctr.Status),
+			Name:                   ctr.Name,
+			ContainerPort:          uint64(ctr.ContainerPort),
+			PublicPort:             uint64(ctr.PublicPort),
+			CreatedTime:            timestamppb.New(ctr.CreatedTime),
+			CpuUsage:               ctrMetrics.CpuUsage,
+			MemoryUsage:            ctrMetrics.MemoryUsage,
+			NetworkIngressUsage:    ctrMetrics.NetworkIngressUsage,
+			NetworkEgressUsage:     ctrMetrics.NetworkEgressUsage,
+			ServiceId:              ctr.ServiceId,
+			TerminatedTime:         timestamppb.New(ctr.TerminatedTime),
+			AllContainerLifecycles: ctLifecycles,
+		})
+
+	}
 
 	res := &pb.GetAllUserContainerResourceUsageResponse{
 		CurrentTime:            promeQueryRes.CurrentTime,
@@ -81,6 +109,63 @@ func (server *MonitorServerImpl) GetAllUserContainerResourceUsage(
 
 }
 
-func (server *MonitorServerImpl) GetSpecificContainerResourceUsage(ctx context.Context, req *pb.GetSpecificContainerResourceUsageRequest) (*pb.GetSpecificContainerResourceUsageResponse, error) {
-	return &pb.GetSpecificContainerResourceUsageResponse{}, nil
+func (server *MonitorServerImpl) GetSpecificContainerResourceUsage(
+	ctx context.Context,
+	req *pb.GetSpecificContainerResourceUsageRequest,
+) (*pb.GetSpecificContainerResourceUsageResponse, error) {
+	userId := req.UserId
+	fromTime := req.FromTime
+	containerId := req.ContainerId
+
+	ctr, err := server.containerRepo.Get(ctx, containerId)
+	if err != nil && errors.Is(err, domain.ErrNotFound) {
+		return nil, status.Errorf(codes.NotFound, "container not found %v", err)
+	}
+	if ctr.UserId.String() != userId {
+		return nil, status.Errorf(codes.PermissionDenied, fmt.Sprintf("anda bukan pemilik container dg id %v", containerId))
+	}
+
+	ctrMetrics, err := server.prome.GetMetricsByServiceId(ctx, ctr.ServiceId, fromTime)
+	if err != nil {
+		zap.L().Error("server.prome.GetMetricsByServiceId", zap.Error(err))
+		return nil, status.Errorf(codes.InvalidArgument, "Gagal mendapatkan metrics dari container %v", err)
+	}
+
+	var ctLifes []*pb.ContainerLifeCycles
+	for _, life := range ctr.ContainerLifecycles {
+		ctLifes = append(ctLifes, &pb.ContainerLifeCycles{
+			Id:          life.ID.String(),
+			ContainerId: ctr.ID.String(),
+			StartTime:   timestamppb.New(life.StartTime),
+			StopTime:    timestamppb.New(life.StopTime),
+
+			Replica: life.Replica,
+			Status:  pb.ContainerStatus(life.Status),
+		})
+	}
+
+	res := &pb.GetSpecificContainerResourceUsageResponse{
+
+		CurrentTime: timestamppb.New(time.Now()),
+		UserContainer: &pb.Container{
+			Id:                     ctr.ID.String(),
+			ImageUrl:               ctr.ImageUrl,
+			Status:                 pb.ContainerStatus(ctr.Status),
+			Name:                   ctr.Name,
+			ContainerPort:          uint64(ctr.ContainerPort),
+			PublicPort:             uint64(ctr.PublicPort),
+			CreatedTime:            timestamppb.New(ctr.CreatedTime),
+			CpuUsage:               ctrMetrics.CpuUsage,
+			MemoryUsage:            ctrMetrics.MemoryUsage,
+			NetworkIngressUsage:    ctrMetrics.NetworkIngressUsage,
+			NetworkEgressUsage:     ctrMetrics.NetworkEgressUsage,
+			ServiceId:              ctr.ServiceId,
+			TerminatedTime:         timestamppb.New(ctr.TerminatedTime),
+			AllContainerLifecycles: ctLifes,
+		},
+		FromTime: fromTime,
+	}
+
+	return res, nil
+
 }

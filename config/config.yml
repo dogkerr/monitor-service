@@ -23,3 +23,6 @@ redis:
   host: chat-redispkg #gak guna
   address: 6379 #gak guna
   password: passwordRedis #gak guna
+
+prometheus:
+  url: http://localhost:9090
