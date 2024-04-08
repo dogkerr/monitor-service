@@ -19,7 +19,7 @@ CREATE TABLE containers (
     public_port int,
     terminated_time timestamp with time zone ,
     created_time timestamp with time zone  DEFAULT NOW() not null,
-    serviceId VARCHAR(255)
+    service_id VARCHAR(255)
 );
 
 

@@ -66,6 +66,9 @@ type allUserCtrRes struct {
 func (m *MonitorHandler) GetAllUserContainerHandler(c *gin.Context) {
 	userId := c.Query("userId")
 	sv, err := m.Service.GetAllUserContainerService(c, userId)
+	if err != nil {
+		c.JSON(getStatusCode(err), ResponseError{Message: err.Error()})
+	}
 	var res []serviceResponse
 	for _, s := range *sv {
 
@@ -94,13 +97,15 @@ func (m *MonitorHandler) GetAllUserContainerHandler(c *gin.Context) {
 		})
 
 	}
-	c.JSON(getStatusCode(err), allUserCtrRes{res})
+	c.JSON(http.StatusOK, allUserCtrRes{res})
 }
 
 func (m *MonitorHandler) TesDoang(c *gin.Context) {
 	tesResult, err := m.Service.TesDoang(c)
-
-	c.JSON(getStatusCode(err), tesResult)
+	if err != nil {
+		c.JSON(getStatusCode(err), ResponseError{Message: err.Error()})
+	}
+	c.JSON(http.StatusOK, tesResult)
 }
 func getStatusCode(err error) int {
 	if err == nil {

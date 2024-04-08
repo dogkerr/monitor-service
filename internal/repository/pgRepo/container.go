@@ -20,10 +20,9 @@ func NewContainerRepo(db *postgres.Postgres) *ContainerRepository {
 	return &ContainerRepository{db}
 }
 
-
 // query ke postgres buat dapetin semua container yang dimiliki user
 func (r *ContainerRepository) GetAllUserContainer(ctx context.Context, userId string) (*[]domain.Container, error) {
-	rows, err := r.db.Pool.QueryContext(ctx, `SELECT c.id, c.user_id, c.image_url, c.status, c.name, c.container_port, c.public_port, c.created_time,c.serviceId, c.terminated_time,
+	rows, err := r.db.Pool.QueryContext(ctx, `SELECT c.id, c.user_id, c.image_url, c.status, c.name, c.container_port, c.public_port, c.created_time,c.service_id, c.terminated_time,
 			cl.id as lifecycleId, cl.start_time as lifecycleStartTime, cl.stop_time as lifecycleStopTime, 
 			cl.replica as lifecycleReplica, cl.status FROM containers c  LEFT JOIN container_lifecycles cl ON cl.container_id=c.id
 			WHERE c.user_id=$1`, userId)
@@ -128,18 +127,18 @@ func (r *ContainerRepository) GetAllUserContainer(ctx context.Context, userId st
 }
 
 // Get mendapatkan container bedasarkan idnya
-func (r *ContainerRepository) Get(ctx context.Context, cId string) (*domain.Container, error) {
-	rows, err := r.db.Pool.QueryContext(ctx, `SELECT c.id, c.user_id, c.image_url, c.status, c.name, c.container_port, c.public_port,
-			 c.terminated_time,
-			c.created_time, c.serviceId, cl.id as lifeId, cl.start_time, cl.stop_time, cl.status, cl.replica 
-			FROM containers c LEFT JOIN container_lifecycles cl ON cl.container_id=c.id
-			WHERE c.id=$1  `, cId)
+func (r *ContainerRepository) Get(ctx context.Context, serviceId string) (*domain.Container, error) {
+	rows, err := r.db.Pool.QueryContext(ctx, `SELECT c.id, c.user_id, c.image_url, c.status, c.name, c.container_port, c.public_port,c.created_time,
+	c.service_id,c.terminated_time, cl.id as lifeId, cl.start_time, cl.stop_time, cl.replica , cl.status
+	FROM containers c LEFT JOIN container_lifecycles cl ON cl.container_id=c.id
+	WHERE c.service_id=$1`, serviceId)
 
 	if err != nil {
-		zap.L().Error(fmt.Sprintf("r.db.Pool.QueryContext "), zap.String("containerId", cId))
+		zap.L().Error("r.db.Pool.QueryContext ", zap.String("containerId", serviceId))
+		return nil, err
 	}
 
-	var res domain.Container // container dg id cId
+	var res domain.Container // container dg id serviceId
 
 	defer rows.Close()
 
@@ -216,18 +215,18 @@ func (r *ContainerRepository) Get(ctx context.Context, cId string) (*domain.Cont
 				TerminatedTime:      terminatedTime,
 				ContainerLifecycles: append(newCl, cLife),
 			}
-		}else {
+		} else {
 			res.ContainerLifecycles = append(res.ContainerLifecycles,
 				cLife,
 			)
 		}
 	}
-	if  res.Name == "" {
-		zap.L().Debug("container not found", zap.String("containerId", cId))
+	if res.Name == "" {
+		zap.L().Debug("container not found", zap.String("containerId", serviceId))
 		return nil, domain.ErrNotFound
 	}
 
-	return &res, nil 
+	return &res, nil
 
 }
 
