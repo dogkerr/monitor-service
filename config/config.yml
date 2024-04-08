@@ -25,4 +25,13 @@ redis:
   password: passwordRedis #gak guna
 
 prometheus:
-  url: http://localhost:9090
+  urlProme: http://localhost:9090  # http://prometheus pas udah dideploy ke compose
+  # 
+
+
+grafana: 
+  apiKey: glsa_bcNfdtkiExSXHH34oFIfBbNScmfQ7Eof_3ce5a3a5
+  urlGrafana: localhost:3000
+
+grpc:
+  urlGRPC: 127.0.0.1:5001

@@ -6,16 +6,17 @@ import (
 	"github.com/ilyakaznacheev/cleanenv"
 )
 
-
 type (
 	// Config -.
 	Config struct {
-		App      `yaml:"app"`
-		HTTP     `yaml:"http"`
-		Redis    `yaml:"redis"`
-		Postgres `yaml:"postgres"`
-		LogConfig `yaml:"logger"`
+		App        `yaml:"app"`
+		HTTP       `yaml:"http"`
+		Redis      `yaml:"redis"`
+		Postgres   `yaml:"postgres"`
+		LogConfig  `yaml:"logger"`
 		Prometheus `yaml:"prometheus"`
+		Grafana    `yaml:"grafana"`
+		GRPC       `yaml:"grpc"`
 	}
 
 	// App -.
@@ -40,15 +41,24 @@ type (
 	}
 
 	LogConfig struct {
-		Level      string `json:"level" yaml:"level"`
+		Level string `json:"level" yaml:"level"`
 		// Filename   string `json:"filename" yaml:"filename"`
 		// MaxSize    int    `json:"maxsize" yaml:"maxsize"`
-		MaxAge     int    `json:"max_age" yaml:"max_age"`
-		MaxBackups int    `json:"max_backups" yaml:"max_backups"`
+		MaxAge     int `json:"max_age" yaml:"max_age"`
+		MaxBackups int `json:"max_backups" yaml:"max_backups"`
 	}
 
 	Prometheus struct {
-		Url string `json:"url" yaml:"url"`
+		URL string `json:"urlProme" yaml:"urlProme"`
+	}
+
+	Grafana struct {
+		Apikey     string `json:"apiKey" yaml:"apiKey"`
+		URLGrafana string `json:"urlGrafana" yaml:"urlGrafana"`
+	}
+
+	GRPC struct {
+		URLGrpc string `json:"urlGRPC" yaml:"urlGRPC"`
 	}
 )
 
@@ -56,13 +66,8 @@ type (
 func NewConfig() (*Config, error) {
 	cfg := &Config{}
 
-	// err := cleanenv.ReadConfig("./config/config.yml", cfg)
-	err := cleanenv.ReadConfig("./config/config.yml", cfg)
+	err := cleanenv.ReadConfig("../config/config.yml", cfg)
 
-	// err = cleanenv.ReadConfig("./.env", cfg)
-	// if err != nil {
-	// 	return nil, err
-	// }
 	if err != nil {
 		return nil, fmt.Errorf("config error: %w", err)
 	}
