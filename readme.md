@@ -1,8 +1,9 @@
 
 ### Cara testing
 1. ikutin cara nyalain prometheus di readme repo dogker/configs
-2. migrate database && insert data dummy ke masing masing table (lihat di migrations/.....up.sql)
-3.  jalanin docker swarm service
+2. docker compose up [monitor service]
+3. migrate database && insert data dummy ke masing masing table (lihat di migrations/.....up.sql)
+4.  jalanin docker swarm service
 ```
  docker service create --name  go_container_4  --publish 8040:80 --replicas 3 --container-label  user_id=<user_id_di_table_container>    generate_user_dashboard_dan_perfomance_testing-go_container_log_user1:latest
 
