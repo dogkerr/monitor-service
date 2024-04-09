@@ -17,6 +17,7 @@ import (
 func InitHTTPandGRPC(cfg *config.Config, handler *gin.Engine) *postgres.Postgres {
 	// Router
 	pg := postgres.NewPostgres(cfg)
+	defer postgres.ClosePostgres(pg.Pool)
 	containerRepository := pgrepo.NewContainerRepo(pg)
 	grf := webapi.NewGrafanaAPI(cfg)
 	dbRepo := pgrepo.NewDashboardRepo(pg)

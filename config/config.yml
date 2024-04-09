@@ -30,8 +30,8 @@ prometheus:
 
 
 grafana: 
-  apiKey: glsa_bcNfdtkiExSXHH34oFIfBbNScmfQ7Eof_3ce5a3a5
+  apiKey: glsa_DMAkN4vQhwJWy1gvwOtjyUBbzla2smAq_6274bda3
   urlGrafana: localhost:3000
 
 grpc:
-  urlGRPC: 127.0.0.1:5001
+  urlGRPC: 0.0.0.0:5001

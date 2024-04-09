@@ -46,6 +46,7 @@ func main() {
 
 	// init app
 	pg := di.InitApp(cfg, handler)
+	defer postgres.ClosePostgres(pg.Pool)
 
 	// Waiting signal
 	interrupt := make(chan os.Signal, 1)
@@ -60,7 +61,6 @@ func main() {
 
 	// Shutdown
 	err = httpServer.Shutdown()
-	postgres.ClosePostgres(pg.Pool)
 	if err != nil {
 		zap.L().Fatal(fmt.Errorf("app - Run - httpServer.Shutdown: %w", err).Error())
 	}

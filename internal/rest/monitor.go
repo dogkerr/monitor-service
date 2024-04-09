@@ -19,6 +19,7 @@ type MonitorService interface {
 	TesDoang(ctx context.Context) (string, error)
 	GetAllUserContainerService(ctx context.Context, userID string) (*[]domain.Container, error)
 	GetUserMonitorDashboard(ctx context.Context, userID string) (*domain.Dashboard, error)
+	GetLogsDashboard(ctx context.Context, userID string) (*domain.Dashboard, error)
 }
 
 type MonitorHandler struct {
@@ -33,7 +34,8 @@ func NewMonitorHandler(rg *gin.RouterGroup, svc MonitorService) {
 	{
 		h.GET("/tes", handler.TesDoang)
 		h.GET("/services", handler.GetAllUserContainerHandler)
-		h.GET("/dashboard", handler.GetUserDashboard)
+		h.GET("/dashboards/monitors", handler.GetUserMonitorDashboard)
+		h.GET("/dashboards/logs", handler.GetUserLogsDashboard)
 	}
 }
 
@@ -104,9 +106,21 @@ type dashboardRes struct {
 	Dashboard domain.Dashboard `json:"dashboard"`
 }
 
-func (m *MonitorHandler) GetUserDashboard(c *gin.Context) {
+func (m *MonitorHandler) GetUserMonitorDashboard(c *gin.Context) {
 	userID := c.Query("userID")
 	sv, err := m.service.GetUserMonitorDashboard(c, userID)
+	if err != nil {
+		c.JSON(getStatusCode(err), ResponseError{Message: err.Error()})
+	}
+	dbResult := dashboardRes{
+		*sv,
+	}
+	c.JSON(http.StatusOK, dbResult)
+}
+
+func (m *MonitorHandler) GetUserLogsDashboard(c *gin.Context) {
+	userID := c.Query("userID")
+	sv, err := m.service.GetLogsDashboard(c, userID)
 	if err != nil {
 		c.JSON(getStatusCode(err), ResponseError{Message: err.Error()})
 	}

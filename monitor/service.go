@@ -14,7 +14,8 @@ type DashboardRepository interface {
 }
 
 type GrafanaAPI interface {
-	CreateDashboard(ctx context.Context, userID string) (*domain.Dashboard, error)
+	CreateMonitorDashboard(ctx context.Context, userID string) (*domain.Dashboard, error)
+	CreateLogsDashboard(ctx context.Context, userID string) (*domain.Dashboard, error)
 }
 
 type Service struct {
@@ -31,23 +32,42 @@ func NewService(c ContainerRepository, grf GrafanaAPI, db DashboardRepository) *
 	}
 }
 
-// get dashboard user di tabel dashboard kalo ada, kalo gak ada buatin dashboard grafana baru dan simpen uid dashboard nya ke tabel dashboard
+// get dashboard prometheus user di tabel dashboard kalo ada, kalo gak ada buatin dashboard grafana baru dan simpen uid dashboard nya ke tabel dashboard
 func (m *Service) GetUserMonitorDashboard(ctx context.Context, userID string) (*domain.Dashboard, error) {
 	res, err := m.dashboardRepo.GetByUserIDAndType(ctx, userID, "monitor")
 	if err != nil && errors.Is(err, domain.ErrNotFound) {
-		newDashboard, err := m.grafanaClient.CreateDashboard(ctx, userID)
+		newDashboard, err := m.grafanaClient.CreateMonitorDashboard(ctx, userID)
 		if err != nil {
-			zap.L().Error("cant create grafana dashboard", zap.String("userID", userID))
+			zap.L().Error("cant create grafana prometheus dashboard", zap.String("userID", userID))
 			return nil, err
 		}
 		err = m.dashboardRepo.CreateDashboard(ctx, newDashboard)
 		if err != nil {
-			zap.L().Error("cant create grafana dashboard", zap.String("userID", userID))
+			zap.L().Error("cant insert prometheus dashboard to db", zap.String("userID", userID))
 			return nil, err
 		}
 		return newDashboard, nil
 	}
 	return res, err
+}
+
+// get dashboard loki user di tabel dashboard kalo ada, kalo gak ada buatin dashboard grafana baru dan simpen uid dashboard nya ke tabel dashboard
+func (m *Service) GetLogsDashboard(ctx context.Context, userID string) (*domain.Dashboard, error) {
+	res, err := m.dashboardRepo.GetByUserIDAndType(ctx, userID, "log")
+	if err != nil && errors.Is(err, domain.ErrNotFound) {
+		newLogsDashboard, err := m.grafanaClient.CreateLogsDashboard(ctx, userID)
+		if err != nil {
+			zap.L().Error("cant create grafana loki dashboard", zap.String("userID", userID))
+			return nil, err
+		}
+		err = m.dashboardRepo.CreateDashboard(ctx, newLogsDashboard)
+		if err != nil {
+			zap.L().Error("cant insert loki dashboard to db", zap.String("userID", userID))
+			return nil ,err 
+		}
+		return newLogsDashboard, nil
+	}
+	return res, nil 
 }
 
 // buat testing doang

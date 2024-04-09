@@ -36,11 +36,12 @@ func NewGrafanaAPI(cfg *config.Config) *GrafanaAPI {
 	return &GrafanaAPI{grafanaClient}
 }
 
-func (g *GrafanaAPI) CreateDashboard(ctx context.Context, userID string) (*domain.Dashboard, error) {
+// genrate monitoring dashboard prometheus untuk setiap docker swarm service milik user
+func (g *GrafanaAPI) CreateMonitorDashboard(ctx context.Context, userID string) (*domain.Dashboard, error) {
 	// get prometheus datasource id
 	getDt, err := g.client.Datasources.GetDataSources()
 	if err != nil {
-		zap.L().Error("datasources not found")
+		zap.L().Error("datasources not found", zap.Error(err))
 		return nil, err
 	}
 	datasources := getDt.Payload
@@ -53,10 +54,10 @@ func (g *GrafanaAPI) CreateDashboard(ctx context.Context, userID string) (*domai
 	}
 	path, _ := os.Getwd()
 	// Open our jsonFile
-	jsonFile, err := os.Open(path + "./config/docker-quest-prometheus.json")
+	jsonFile, err := os.Open(path + "/config/docker_prometheus_template.json")
 	// if we os.Open returns an error then handle it
 	if err != nil {
-		zap.L().Error("grafana config file not found", zap.String("path", "../config/docker-quest-prometheus.json"))
+		zap.L().Error("grafana monitor config template file not found", zap.String("path", "/config/docker_prometheus_template.json"), zap.Error(err))
 		return nil, err
 	}
 	// defer the closing of our jsonFile so that we can parse it later on
@@ -64,15 +65,14 @@ func (g *GrafanaAPI) CreateDashboard(ctx context.Context, userID string) (*domai
 
 	byteValue, err := io.ReadAll(jsonFile)
 	if err != nil {
-		zap.L().Error("file not found")
+		zap.L().Error("io.ReadAll(jsonFile) [grafana monitoring config file]", zap.Error(err))
 		return nil, err
 	}
-	var grafanaConfig domain.GrafanaConfig
+	var grafanaConfig domain.GrafanaMonitorConfig
 
 	err = json.Unmarshal(byteValue, &grafanaConfig)
 	if err != nil {
-		zap.L().Error("json.Unmarshal")
-		// return nil, err
+		zap.L().Error("json.Unmarshal") // jangan di return karena emang banyak field json yang ga sesuai struct , tapi tetep bisa generate dashboard
 	}
 
 	// mengubah isi config grafana sesuai dg userId yg meminta request
@@ -119,10 +119,6 @@ func (g *GrafanaAPI) CreateDashboard(ctx context.Context, userID string) (*domai
 	grafanaConfig.Dashboard.UID = randomString
 	grafanaConfig.Dashboard.Style = "light"
 
-	// file, _ := json.MarshalIndent(grafanaConfig, "", " ")
-
-	// newDb, err := os.Open(path + "/" + randomString + ".json")
-	// file, _ := json.Marshal(grafanaConfig)
 	makeDB, err := g.client.Dashboards.PostDashboard(&models.SaveDashboardCommand{
 		Dashboard: grafanaConfig.Dashboard,
 	})
@@ -139,6 +135,7 @@ func (g *GrafanaAPI) CreateDashboard(ctx context.Context, userID string) (*domai
 	}, nil
 }
 
+// generate random string uid,title user dashboard
 func generateRandomString(length int) string {
 	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	seed := rand.NewSource(time.Now().UnixNano())
@@ -149,3 +146,97 @@ func generateRandomString(length int) string {
 	}
 	return string(result)
 } //nolint: gosec // asda
+
+type lokiQueryVariable struct {
+	Label  string `json:"label"`
+	RefID  string `json:"refId"`
+	Stream string `json:"stream"`
+	Tipe   int    `json:"type"`
+}
+
+// create logs dashboard untuk semua docker swarm  service milik user
+func (g *GrafanaAPI) CreateLogsDashboard(ctx context.Context, userID string) (*domain.Dashboard, error) {
+	// get loki datasource id
+	getDt, err := g.client.Datasources.GetDataSources()
+	if err != nil {
+		zap.L().Error("datasources not found", zap.Error(err))
+		return nil, err
+	}
+	datasources := getDt.Payload
+	datasourceID := ""
+
+	for _, dt := range datasources {
+		if dt.Type == "loki" {
+			zap.L().Debug("dapet loki data source uid", zap.String("loki_uid", dt.UID))
+			datasourceID = dt.UID
+		}
+	}
+
+	path, _ := os.Getwd()
+	jsonFile, err := os.Open(path + "/config/loki_logs_per_user_template.json") // /../config kalau debug, /config kalau gak debug
+
+	if err != nil {
+		zap.L().Error("grafana logs dashboard config template file not found", zap.String("path", "/config/loki_logs_per_user_template.json"), zap.Error(err))
+		return nil, err
+	}
+
+	defer jsonFile.Close()
+	byteValue, err := io.ReadAll(jsonFile)
+	if err != nil {
+		zap.L().Error("io.ReadAll(jsonFile) [grafana logs config file]", zap.Error(err))
+		return nil, err
+	}
+
+	var grafanaConfig domain.GrafanaLogsDashboard
+	err = json.Unmarshal(byteValue, &grafanaConfig)
+	if err != nil {
+		zap.L().Debug("json.Unmarshal") // jangan di return karena emang banyak field json yang ga sesuai struct, tapi tetep bisa generate dashboard
+	}
+
+	for i := 0; i < len(grafanaConfig.Dashboard.Panels); i++ {
+		panel := grafanaConfig.Dashboard.Panels[i]
+		panel.Datasource.UID = datasourceID
+		panel.Targets[0].Datasource.UID = datasourceID
+	}
+
+	list := grafanaConfig.Dashboard.Templating.List
+	list[2].Datasource.UID = datasourceID
+	// var queryNameloki interface{} = lokiQueryVariable{
+	// 	label: "container_name",
+	// 	refId: "LokiVariableQueryEditor-VariableQuery",
+	// 	stream: "{userId=\"" + userID + "\"}",
+	// 	tipe: 1,
+	// }
+
+	// list[2].Query = queryNameloki.(lokiQueryVariable)
+	list[2].Query = lokiQueryVariable{
+		Label:  "container_name",
+		RefID:  "LokiVariableQueryEditor-VariableQuery",
+		Stream: "{userId=\"" + userID + "\"}",
+		Tipe:   1,
+	} // bug disni gak ketulis ke dashboardnya
+
+	list[2].Datasource.UID = datasourceID
+
+	grafanaConfig.Dashboard.Time.From = "now-5d"
+
+	randomString := generateRandomString(8)
+	grafanaConfig.Dashboard.Title = randomString
+	grafanaConfig.Dashboard.UID = randomString
+	grafanaConfig.Dashboard.Style = "light"
+
+	makeLogsDB, err := g.client.Dashboards.PostDashboard(&models.SaveDashboardCommand{
+		Dashboard: grafanaConfig.Dashboard,
+	})
+
+	if err != nil {
+		zap.L().Error("cant create new dashboard", zap.String("userId", userID))
+		return nil, err
+	}
+	dbUID := *makeLogsDB.GetPayload().UID
+	return &domain.Dashboard{
+		Uid:   dbUID,
+		Owner: userID,
+		Type:  "log",
+	}, nil
+}

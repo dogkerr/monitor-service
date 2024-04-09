@@ -1,5 +1,13 @@
 
 ### Cara testing
+```
+1. buat folder pb
+2. buat .env isinya PG_URL
+3. generate protobuf code `make proto`
+
+```
+
+
 1. ikutin cara nyalain prometheus di readme repo dogker/configs
 2. docker compose up [monitor service]
 3. migrate database && insert data dummy ke masing masing table (lihat di migrations/.....up.sql)
@@ -9,6 +17,30 @@
 
 
   docker service create --name  go_container_user2  --publish 8032:80 --replicas 1 --container-label  user_id=<user_id_di_table_container>    generate_user_dashboard_dan_perfomance_testing-go_container_log_user1:latest
+
+
+
+docker service create --name  go_container_log1  --publish 8036:80 --replicas 2 --container-label  user_id=<user_id_di_table_container> --log-driver=loki \
+    --log-opt loki-url="http://localhost:3100/loki/api/v1/push" \
+    --log-opt loki-retries=5 \
+    --log-opt loki-batch-size=400 \
+    --log-opt loki-external-labels="job=docker,container_name=go_container_api_user2,userId=<user_id_di_table_container>" generate_user_dashboard_dan_perfomance_testing-go_container_log_user1:latest 
+
+
+## contoh:
+docker service create --name  go_container_log2  --publish 8038:80 --replicas 2 --container-label  user_id=eff92b7f-3f90-405b-9fb8-1ff12eb72431 --log-driver=loki \
+    --log-opt loki-url="http://localhost:3100/loki/api/v1/push" \
+    --log-opt loki-retries=5 \
+    --log-opt loki-batch-size=400 \
+    --log-opt loki-external-labels="job=docker,container_name=go_container_api_user2,userId=eff92b7f-3f90-405b-9fb8-1ff12eb72431" generate_user_dashboard_dan_perfomance_testing-go_container_log_user1:latest 
+
+
+
+
+# harus localhost:3100/loki/api/v1/push biar bisa kedetect loki (pake loki:3100 gakbisa)
+
+
+docker service create --name  go_container_log2  --publish 8037:80 --replicas 1 --container-label  user_id=<user_id_di_table_container>    generate_user_dashboard_dan_perfomance_testing-go_container_log_user1:latest 
 
 ```
 
@@ -57,4 +89,12 @@ id serviceAcc: sa-adm
 mending grafananya dipasangin volume biar gaperlu buat serviceAcc setiap setup grafana
 
 harus masukin api key serviceAcc sa-adm ke config.yaml
+```
+
+
+### genereate loki dashboard
+
+```
+curl localhost:3000/
+
 ```

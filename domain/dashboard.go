@@ -1,20 +1,14 @@
 package domain
 
-
-
 type Dashboard struct {
-	Id string `json:"id"`
+	Id    string `json:"id"`
 	Owner string `json:"owner"`
-	Uid string `json:"uid"`
-	Type string `json:"type"`
+	Uid   string `json:"uid"`
+	Type  string `json:"type"`
 }
 
-
-
-
-
 // grafana config
-type GrafanaConfig struct {
+type GrafanaMonitorConfig struct {
 	Dashboard struct {
 		Inputs []struct {
 			Name        string `json:"name"`
@@ -263,5 +257,114 @@ type GrafanaConfig struct {
 		Title    string `json:"title"`
 		UID      string `json:"uid"`
 		Version  int    `json:"version"`
+	} `json:"dashboard"`
+}
+
+type GrafanaLogsDashboard struct {
+	Dashboard struct {
+		Annotations struct {
+			List []struct {
+				BuiltIn    int `json:"builtIn"`
+				Datasource struct {
+					Type string `json:"type"`
+					UID  string `json:"uid"`
+				} `json:"datasource"`
+				Enable    bool   `json:"enable"`
+				Hide      bool   `json:"hide"`
+				IconColor string `json:"iconColor"`
+				Name      string `json:"name"`
+				Type      string `json:"type"`
+			} `json:"list"`
+		} `json:"annotations"`
+		Editable             bool          `json:"editable"`
+		FiscalYearStartMonth int           `json:"fiscalYearStartMonth"`
+		GraphTooltip         int           `json:"graphTooltip"`
+		ID                   int           `json:"id"`
+		Links                []interface{} `json:"links"`
+		LiveNow              bool          `json:"liveNow"`
+		Panels               []struct {
+			Datasource struct {
+				Type string `json:"type"`
+				UID  string `json:"uid"`
+			} `json:"datasource"`
+			GridPos struct {
+				H int `json:"h"`
+				W int `json:"w"`
+				X int `json:"x"`
+				Y int `json:"y"`
+			} `json:"gridPos"`
+			ID      int `json:"id"`
+			Options struct {
+				DedupStrategy      string `json:"dedupStrategy"`
+				EnableLogDetails   bool   `json:"enableLogDetails"`
+				PrettifyLogMessage bool   `json:"prettifyLogMessage"`
+				ShowCommonLabels   bool   `json:"showCommonLabels"`
+				ShowLabels         bool   `json:"showLabels"`
+				ShowTime           bool   `json:"showTime"`
+				SortOrder          string `json:"sortOrder"`
+				WrapLogMessage     bool   `json:"wrapLogMessage"`
+			} `json:"options"`
+			Targets []struct {
+				Datasource struct {
+					Type string `json:"type"`
+					UID  string `json:"uid"`
+				} `json:"datasource"`
+				EditorMode string `json:"editorMode"`
+				Expr       string `json:"expr"`
+				QueryType  string `json:"queryType"`
+				RefID      string `json:"refId"`
+			} `json:"targets"`
+			Title         string `json:"title"`
+			Type          string `json:"type"`
+			Description   string `json:"description,omitempty"`
+			PluginVersion string `json:"pluginVersion,omitempty"`
+		} `json:"panels"`
+		Refresh       string        `json:"refresh"`
+		SchemaVersion int           `json:"schemaVersion"`
+		Tags          []interface{} `json:"tags"`
+		Templating    struct {
+			List []struct {
+				Current struct {
+					Selected bool   `json:"selected"`
+					Text     string `json:"text"`
+					Value    string `json:"value"`
+				} `json:"current"`
+				Hide    int    `json:"hide"`
+				Name    string `json:"name"`
+				Options []struct {
+					Selected bool   `json:"selected"`
+					Text     string `json:"text"`
+					Value    string `json:"value"`
+				} `json:"options"`
+				Query       interface{} `json:"query"`
+				SkipURLSync bool   `json:"skipUrlSync"`
+				Type        string `json:"type"`
+				Description string `json:"description,omitempty"`
+				IncludeAll  bool   `json:"includeAll,omitempty"`
+				Label       string `json:"label,omitempty"`
+				Multi       bool   `json:"multi,omitempty"`
+				QueryValue  string `json:"queryValue,omitempty"`
+				Datasource  struct {
+					Type string `json:"type"`
+					UID  string `json:"uid"`
+				} `json:"datasource,omitempty"`
+				Definition string `json:"definition,omitempty"`
+				Refresh    int    `json:"refresh,omitempty"`
+				Regex      string `json:"regex,omitempty"`
+				Sort       int    `json:"sort,omitempty"`
+			} `json:"list"`
+		} `json:"templating"`
+		Time struct {
+			From string `json:"from"`
+			To   string `json:"to"`
+		} `json:"time"`
+		Timepicker struct {
+		} `json:"timepicker"`
+		Timezone  string `json:"timezone"`
+		Title     string `json:"title"`
+		UID       string `json:"uid"`
+		Version   int    `json:"version"`
+		WeekStart string `json:"weekStart"`
+		Style     string `json:"style"`
 	} `json:"dashboard"`
 }
