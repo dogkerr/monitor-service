@@ -6,7 +6,6 @@ import (
 	"dogker/lintang/monitor-service/domain"
 	"encoding/json"
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"net/url"
 	"os"
@@ -54,7 +53,7 @@ func (g *GrafanaAPI) CreateDashboard(ctx context.Context, userID string) (*domai
 	}
 	path, _ := os.Getwd()
 	// Open our jsonFile
-	jsonFile, err := os.Open(path + "/../config/docker-quest-prometheus.json")
+	jsonFile, err := os.Open(path + "./config/docker-quest-prometheus.json")
 	// if we os.Open returns an error then handle it
 	if err != nil {
 		zap.L().Error("grafana config file not found", zap.String("path", "../config/docker-quest-prometheus.json"))
@@ -120,12 +119,12 @@ func (g *GrafanaAPI) CreateDashboard(ctx context.Context, userID string) (*domai
 	grafanaConfig.Dashboard.UID = randomString
 	grafanaConfig.Dashboard.Style = "light"
 
-	file, _ := json.MarshalIndent(grafanaConfig, "", " ")
-	_ = ioutil.WriteFile(randomString+".json", file, 0644)
+	// file, _ := json.MarshalIndent(grafanaConfig, "", " ")
+
 	// newDb, err := os.Open(path + "/" + randomString + ".json")
 	// file, _ := json.Marshal(grafanaConfig)
 	makeDB, err := g.client.Dashboards.PostDashboard(&models.SaveDashboardCommand{
-		Dashboard: grafanaConfig,
+		Dashboard: grafanaConfig.Dashboard,
 	})
 	if err != nil {
 		zap.L().Error("cant create new dashboard", zap.String("userId", userID))

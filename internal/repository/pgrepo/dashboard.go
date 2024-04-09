@@ -42,7 +42,7 @@ func (r *DashboardRepository) GetByUserIDAndType(ctx context.Context, userID, db
 // create dashboard dg type ('log'/'monitoring')
 func (r *DashboardRepository) CreateDashboard(ctx context.Context, dashboard *domain.Dashboard) error {
 
-	_, err := r.db.Pool.ExecContext(ctx, "INSERT INTO dashboards(uid, owner, db_type)  VALUES(?, ?, ?)",
+	_, err := r.db.Pool.ExecContext(ctx, "INSERT INTO dashboards(uid, owner, db_type)  VALUES($1, $2, $3)",
 		dashboard.Uid, dashboard.Owner, dashboard.Type)
 	if err != nil {
 		zap.L().Error("r.db.Pool.ExecContext(ctx, 'INSERT INTO dashboards(uid, owner, db_type)  VALUES(?, ?, ?)'")
