@@ -14,61 +14,61 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-type PrometheusApi interface {
-	GetUserContainerResourceUsageRequest(ctx context.Context, userId string, fromTimeIn *timestamppb.Timestamp,
-	) (*domain.Prometheus, error)
-	GetMetricsByServiceId(ctx context.Context, serviceId string, fromTimeIn *timestamppb.Timestamp) (*domain.Metric, error)
+type PrometheusAPI interface {
+	GetUserContainerResourceUsageRequest(ctx context.Context, userID string, fromTimeIn *timestamppb.Timestamp) (*domain.Prometheus, error)
+	GetMetricsByServiceID(ctx context.Context, serviceID string, fromTimeIn *timestamppb.Timestamp) (*domain.Metric, error)
 }
 
 type ContainerRepository interface {
-	Get(ctx context.Context, cId string) (*domain.Container, error)
-	GetAllUserContainer(ctx context.Context, userId string) (*[]domain.Container, error)
+	Get(ctx context.Context, serviceID string) (*domain.Container, error)
+	GetAllUserContainer(ctx context.Context, userID string) (*[]domain.Container, error)
 }
 
 type MonitorServerImpl struct {
 	pb.UnimplementedMonitorServiceServer
-	prome         PrometheusApi
+	prome         PrometheusAPI
 	containerRepo ContainerRepository
 }
 
-func NewMonitorServer(prome PrometheusApi, cRepo ContainerRepository) *MonitorServerImpl {
+func NewMonitorServer(prome PrometheusAPI, cRepo ContainerRepository) *MonitorServerImpl {
 	return &MonitorServerImpl{prome: prome, containerRepo: cRepo}
 }
 
 // grpc service buat billing service
-// intinya dapetin metrics usage untuk keseluruhan container user dan metrics setiap contianer yang dipunya user
+// intinya dapetin metrics usage untuk keseluruhan container user dan metrics setiap container yang dipunya user
 func (server *MonitorServerImpl) GetAllUserContainerResourceUsage(
 	ctx context.Context,
 	req *pb.GetUserContainerResourceUsageRequest,
 ) (*pb.GetAllUserContainerResourceUsageResponse, error) {
-
-	userId := req.GetUserId()
+	userID := req.GetUserId()
 	fromTime := req.GetFromTime()
 
-	promeQueryRes, err := server.prome.GetUserContainerResourceUsageRequest(ctx, userId, fromTime)
+	promeQueryRes, err := server.prome.GetUserContainerResourceUsageRequest(ctx, userID, fromTime)
 	if err != nil {
 		zap.L().Error("server.prome.GetUserContainerResourceUsageRequest", zap.Error(err))
 		return nil, status.Errorf(codes.InvalidArgument, "server.prome.GetUSerContainerRequest: %v", err)
 	}
 
 	var usersContainer []*pb.Container
-	allUserCtr, err := server.containerRepo.GetAllUserContainer(ctx, userId)
+	allUserCtr, err := server.containerRepo.GetAllUserContainer(ctx, userID)
 	if err != nil {
 		zap.L().Error("server.containerRepo.GetAllUserContainer", zap.Error(err))
 		return nil, status.Errorf(codes.InvalidArgument, "User tidak pernah membuat container ke dogker %v", err)
 	}
 
-	for _, ctr := range *allUserCtr {
-		ctrMetrics, err := server.prome.GetMetricsByServiceId(ctx, ctr.ServiceId, fromTime)
+	for i := 0; i < len(*allUserCtr); i++ {
+		ctr := *allUserCtr
+
+		ctrMetrics, err := server.prome.GetMetricsByServiceID(ctx, ctr[i].ServiceID, fromTime)
 		if err != nil {
 			zap.L().Error("server.prome.GetMetricsByServiceId", zap.Error(err))
 			return nil, status.Errorf(codes.InvalidArgument, "Gagal mendapatkan metrics dari container %v", err)
 		}
 		var ctLifecycles []*pb.ContainerLifeCycles
-		for _, life := range ctr.ContainerLifecycles {
+		for _, life := range ctr[i].ContainerLifecycles {
 			ctLifecycles = append(ctLifecycles, &pb.ContainerLifeCycles{
 				Id:          life.ID.String(),
-				ContainerId: ctr.ID.String(),
+				ContainerId: ctr[i].ID.String(),
 				StartTime:   timestamppb.New(life.StartTime),
 				StopTime:    timestamppb.New(life.StopTime),
 
@@ -78,27 +78,26 @@ func (server *MonitorServerImpl) GetAllUserContainerResourceUsage(
 		}
 
 		usersContainer = append(usersContainer, &pb.Container{
-			Id:                     ctr.ID.String(),
-			ImageUrl:               ctr.ImageUrl,
-			Status:                 pb.ContainerStatus(ctr.Status),
-			Name:                   ctr.Name,
-			ContainerPort:          uint64(ctr.ContainerPort),
-			PublicPort:             uint64(ctr.PublicPort),
-			CreatedTime:            timestamppb.New(ctr.CreatedTime),
+			Id:                     ctr[i].ID.String(),
+			ImageUrl:               ctr[i].ImageURL,
+			Status:                 pb.ContainerStatus(ctr[i].Status),
+			Name:                   ctr[i].Name,
+			ContainerPort:          uint64(ctr[i].ContainerPort),
+			PublicPort:             uint64(ctr[i].PublicPort),
+			CreatedTime:            timestamppb.New(ctr[i].CreatedTime),
 			CpuUsage:               ctrMetrics.CpuUsage,
 			MemoryUsage:            ctrMetrics.MemoryUsage,
 			NetworkIngressUsage:    ctrMetrics.NetworkIngressUsage,
 			NetworkEgressUsage:     ctrMetrics.NetworkEgressUsage,
-			ServiceId:              ctr.ServiceId,
-			TerminatedTime:         timestamppb.New(ctr.TerminatedTime),
+			ServiceId:              ctr[i].ServiceID,
+			TerminatedTime:         timestamppb.New(ctr[i].TerminatedTime),
 			AllContainerLifecycles: ctLifecycles,
 		})
-
 	}
 
 	res := &pb.GetAllUserContainerResourceUsageResponse{
 		CurrentTime:            promeQueryRes.CurrentTime,
-		AllCpuUsage:            promeQueryRes.AllCpuUsage,
+		AllCpuUsage:            promeQueryRes.AllCPUUsage,
 		AllMemoryUsage:         promeQueryRes.AllMemoryUsage,
 		AllNetworkIngressUsage: promeQueryRes.AllNetworkIngressUsage,
 		AllNetworkEgressUsage:  promeQueryRes.AllNetworkEgressUsage,
@@ -106,26 +105,25 @@ func (server *MonitorServerImpl) GetAllUserContainerResourceUsage(
 		FromTime:               promeQueryRes.FromTime,
 	}
 	return res, nil
-
 }
 
 func (server *MonitorServerImpl) GetSpecificContainerResourceUsage(
 	ctx context.Context,
 	req *pb.GetSpecificContainerResourceUsageRequest,
 ) (*pb.GetSpecificContainerResourceUsageResponse, error) {
-	userId := req.UserId
+	userID := req.UserId
 	fromTime := req.FromTime
-	containerId := req.ContainerId
+	containerID := req.ContainerId
 
-	ctr, err := server.containerRepo.Get(ctx, containerId)
+	ctr, err := server.containerRepo.Get(ctx, containerID)
 	if err != nil && errors.Is(err, domain.ErrNotFound) {
 		return nil, status.Errorf(codes.NotFound, "container not found %v", err)
 	}
-	if ctr.UserId.String() != userId {
-		return nil, status.Errorf(codes.PermissionDenied, fmt.Sprintf("anda bukan pemilik container dg id %v", containerId))
+	if ctr.UserID.String() != userID {
+		return nil, status.Errorf(codes.PermissionDenied, fmt.Sprintf("anda bukan pemilik container dg id %v", containerID))
 	}
 
-	ctrMetrics, err := server.prome.GetMetricsByServiceId(ctx, ctr.ServiceId, fromTime)
+	ctrMetrics, err := server.prome.GetMetricsByServiceID(ctx, ctr.ServiceID, fromTime)
 	if err != nil {
 		zap.L().Error("server.prome.GetMetricsByServiceId", zap.Error(err))
 		return nil, status.Errorf(codes.InvalidArgument, "Gagal mendapatkan metrics dari container %v", err)
@@ -149,7 +147,7 @@ func (server *MonitorServerImpl) GetSpecificContainerResourceUsage(
 		CurrentTime: timestamppb.New(time.Now()),
 		UserContainer: &pb.Container{
 			Id:                     ctr.ID.String(),
-			ImageUrl:               ctr.ImageUrl,
+			ImageUrl:               ctr.ImageURL,
 			Status:                 pb.ContainerStatus(ctr.Status),
 			Name:                   ctr.Name,
 			ContainerPort:          uint64(ctr.ContainerPort),
@@ -159,13 +157,11 @@ func (server *MonitorServerImpl) GetSpecificContainerResourceUsage(
 			MemoryUsage:            ctrMetrics.MemoryUsage,
 			NetworkIngressUsage:    ctrMetrics.NetworkIngressUsage,
 			NetworkEgressUsage:     ctrMetrics.NetworkEgressUsage,
-			ServiceId:              ctr.ServiceId,
+			ServiceId:              ctr.ServiceID,
 			TerminatedTime:         timestamppb.New(ctr.TerminatedTime),
 			AllContainerLifecycles: ctLifes,
 		},
 		FromTime: fromTime,
 	}
-
 	return res, nil
-
 }

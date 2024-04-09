@@ -51,7 +51,7 @@ mock: ### run mockgen
 .PHONY: mock
 
 migrate-create:  ### create new migration
-	migrate create -ext sql -dir migrations 'migrate_name'
+	migrate create -ext sql -dir migrations  $(name)
 .PHONY: migrate-create
 
 migrate-up: ### migration up
@@ -62,6 +62,18 @@ migrate-up: ### migration up
 migrate-down: ### migration down
 	migrate -path migrations -database '$(PG_URL)?sslmode=disable' down
 .PHONY: migrate-down
+
+migrate-version:
+	migrate -path migrations -database '$(PG_URL)?sslmode=disable' version
+.PHONY: migrate-version
+
+migrate-goto:
+	migrate -path migrations -database '$(PG_URL)?sslmode=disable' goto $(v)
+.PHONY: migrate-goto
+
+migrate-force:
+	migrate -path migrations -database '$(PG_URL)?sslmode=disable' force $(v)
+.PHONY: migrate-force
 
 proto:
 	rm -f pb/*.go

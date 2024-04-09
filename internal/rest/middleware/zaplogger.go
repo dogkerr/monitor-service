@@ -37,8 +37,7 @@ func InitLogger(cfg config.LogConfig) (err error) {
 	return
 }
 
-func getEncoder() (zapcore.Encoder, zapcore.Encoder) {
-
+func getEncoder() (encoder, fileEncoder zapcore.Encoder) {
 	productionCfg := zap.NewProductionEncoderConfig()
 	productionCfg.TimeKey = "timestamp"
 	productionCfg.EncodeTime = zapcore.ISO8601TimeEncoder
@@ -49,11 +48,11 @@ func getEncoder() (zapcore.Encoder, zapcore.Encoder) {
 	developmentCfg.EncodeLevel = zapcore.CapitalColorLevelEncoder
 
 	consoleEncoder := zapcore.NewConsoleEncoder(developmentCfg)
-	fileEncoder := zapcore.NewJSONEncoder(productionCfg)
+	fileEncoder = zapcore.NewJSONEncoder(productionCfg)
 	return consoleEncoder, fileEncoder
 }
 
-func getLogWriter(maxBackup int, maxAge int) (zapcore.WriteSyncer, zapcore.WriteSyncer) {
+func getLogWriter(maxBackup, maxAge int) (writeSyncerStdout zapcore.WriteSyncer, writeSyncerFile zapcore.WriteSyncer) {
 	file := zapcore.AddSync(&lumberjack.Logger{
 		Filename: "./logs/app.log",
 
@@ -110,7 +109,7 @@ func GinRecovery(stack bool) gin.HandlerFunc {
 						zap.String("request", string(httpRequest)),
 					)
 					// If the connection is dead, we can't write a status to it.
-					c.Error(err.(error)) // nolint: errcheck
+					c.Error(err.(error)) //nolint: errcheck // asds
 					c.Abort()
 					return
 				}

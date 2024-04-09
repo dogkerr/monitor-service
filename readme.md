@@ -24,7 +24,7 @@ paling kiri id service ny.
 7. jalanin client & kirim request ke
 ```
 http://localhost:5033/api/v1/monitors/metrics?userId=<user_id_di_database>
-
+http://localhost:5033/api/v1/monitors/ctrMetrics?userId=<user_id_di_database>&serviceId=<docker_swarm_serviceId>
 
 
 ```
@@ -46,3 +46,15 @@ ue8bafuvfbtra1yzn3u0kg3gu
 ```
 
 buat stop service docker swarm (semua replica container ): `docker service scale go_container=0`
+
+
+### Coba generate dashboard
+
+-- get service account token
+```
+nama service account: adm
+id serviceAcc: sa-adm
+mending grafananya dipasangin volume biar gaperlu buat serviceAcc setiap setup grafana
+
+harus masukin api key serviceAcc sa-adm ke config.yaml
+```
