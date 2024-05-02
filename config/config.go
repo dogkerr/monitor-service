@@ -17,6 +17,7 @@ type (
 		Prometheus `yaml:"prometheus"`
 		Grafana    `yaml:"grafana"`
 		GRPC       `yaml:"grpc"`
+		RabbitMQ `yaml:"rabbitmq"`
 	}
 
 	// App -.
@@ -31,13 +32,13 @@ type (
 	}
 
 	Redis struct {
-		Address  string `env-required:"true" yaml:"server_address" `
+		Address  string `env-required:"true" yaml:"server_address" env:"REDIS_ADDRESS"`
 		Password string `env-required:"true" yaml:"password" env:"REDIS_PASSWORD"`
 	}
 
 	Postgres struct {
-		Username string `env-required:"true" yaml:"username"`
-		Password string `env-required:"true" yaml:"password"`
+		Username string `env-required:"true" yaml:"username"  env:"URL_POSTGRES"`
+		Password string `env-required:"true" yaml:"password" env:"PASSWORD_POSTGRES"`
 	}
 
 	LogConfig struct {
@@ -49,16 +50,20 @@ type (
 	}
 
 	Prometheus struct {
-		URL string `json:"urlProme" yaml:"urlProme"`
+		URL string `json:"urlProme" yaml:"urlProme" env:"URL_PROMETHEUS"`
 	}
 
 	Grafana struct {
-		Apikey     string `json:"apiKey" yaml:"apiKey"`
-		URLGrafana string `json:"urlGrafana" yaml:"urlGrafana"`
+		Apikey     string `json:"apiKey" yaml:"apiKey" env:"GRAFANA_APIKEY"`
+		URLGrafana string `json:"urlGrafana" yaml:"urlGrafana" env:"URL_GRAFANA"`
 	}
 
 	GRPC struct {
-		URLGrpc string `json:"urlGRPC" yaml:"urlGRPC"`
+		URLGrpc string `json:"urlGRPC" yaml:"urlGRPC" env:"URL_GRPC"`
+	}
+
+	RabbitMQ struct {
+		RMQAddress string `json:"rabbitmqAddress" yaml:"rmqAddress" env:"RABBITMQ_ADDRESS"`
 	}
 )
 
@@ -67,7 +72,6 @@ func NewConfig() (*Config, error) {
 	cfg := &Config{}
 
 	err := cleanenv.ReadConfig("./config/config.yml", cfg) // ../config kalau mau debug
-
 	if err != nil {
 		return nil, fmt.Errorf("config error: %w", err)
 	}

@@ -53,7 +53,7 @@ func (p *PrometheusAPI) GetUserContainerResourceUsageRequest(ctx context.Context
 	if len(warnings) > 0 {
 		zap.L().Warn("Warnings: pas query CPU Usage\n")
 	}
-	memoryResults, warnings, err := promeAPI.QueryRange(ctx, "sum(avg_over_time(container_memory_usage_bytes{container_label_user_id=~\""+userID+"\"}[1h])) * 30*24*3600 / 3600 / (1024^3)", r, v1.WithTimeout(5*time.Second))
+	memoryResults, warnings, err := promeAPI.QueryRange(ctx, "sum(avg_over_time(container_memory_usage_bytes{container_label_user_id=~\""+userID+"\"}[1h])) * " + seconds + " / 3600 / (1024^3)", r, v1.WithTimeout(5*time.Second))
 
 	if err != nil {
 		zap.L().Error("Gagal mendapatkan query Memory Usage", zap.Error(err))
@@ -143,7 +143,7 @@ func (p *PrometheusAPI) GetMetricsByServiceID(ctx context.Context, serviceID str
 	if len(warnings) > 0 {
 		zap.L().Warn("Warnings: pas query CPU Usage\n")
 	}
-	memoryResults, warnings, err := promeAPI.QueryRange(ctx, "sum(avg_over_time(container_memory_usage_bytes{container_label_com_docker_swarm_service_id=~\""+serviceID+".*\"}[1h])) * 30*24*3600 / 3600 / (1024^3)", r, v1.WithTimeout(5*time.Second))
+	memoryResults, warnings, err := promeAPI.QueryRange(ctx, "sum(avg_over_time(container_memory_usage_bytes{container_label_com_docker_swarm_service_id=~\""+serviceID+".*\"}[1h])) * "+ seconds + " / 3600 / (1024^3)", r, v1.WithTimeout(5*time.Second))
 
 	if err != nil {
 		zap.L().Error("Gagal mendapatkan query Memory Usage", zap.Error(err))

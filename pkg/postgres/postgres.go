@@ -7,13 +7,13 @@ import (
 	"net/url"
 
 	"time"
+
 	"go.uber.org/zap"
 )
 
 type Postgres struct {
 	Pool *sql.DB
 }
-
 
 func NewPostgres(cfg *config.Config) *Postgres {
 	dsn := url.URL{
@@ -44,7 +44,7 @@ func NewPostgres(cfg *config.Config) *Postgres {
 	return &Postgres{db}
 }
 
-
-func ClosePostgres(pg *sql.DB) {
-	_ = pg.Close()
+func ClosePostgres(pg *sql.DB) error {
+	err := pg.Close()
+	return err
 }

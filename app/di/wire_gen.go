@@ -9,13 +9,12 @@ package di
 import (
 	"dogker/lintang/monitor-service/app/start"
 	"dogker/lintang/monitor-service/config"
-	"dogker/lintang/monitor-service/pkg/postgres"
 	"github.com/gin-gonic/gin"
 )
 
 // Injectors from wire.go:
 
-func InitApp(cfg *config.Config, handler *gin.Engine) *postgres.Postgres {
-	postgresPostgres := start.InitHTTPandGRPC(cfg, handler)
-	return postgresPostgres
+func InitApp(cfg *config.Config, handler *gin.Engine) *start.InitWireApp {
+	initWireApp := start.InitHTTPandGRPC(cfg, handler)
+	return initWireApp
 }

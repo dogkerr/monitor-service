@@ -33,7 +33,21 @@ services:
       - 6379:6379
     command: >
       --requirepass passwordRedis
+  
+  rabbitmq:
+    image: rabbitmq:3.13.1-management
+    container_name: rabbitmq
+    ports:
+        - 5672:5672
+        - 8080:15672
+    volumes:
+        - ~/.docker-conf/rabbitmq/data/:/var/lib/rabbitmq/
+        - ~/.docker-conf/rabbitmq/log/:/var/log/rabbitmq
+
 
 
 volumes:
   pg-data:
+  
+
+

@@ -4,23 +4,32 @@ import (
 	"dogker/lintang/monitor-service/config"
 	"dogker/lintang/monitor-service/internal/grpc"
 	"dogker/lintang/monitor-service/internal/repository/pgrepo"
+	"dogker/lintang/monitor-service/internal/repository/rabbitmqrepo"
 	"dogker/lintang/monitor-service/internal/rest"
 	"dogker/lintang/monitor-service/internal/webapi"
 	"dogker/lintang/monitor-service/monitor"
 	"dogker/lintang/monitor-service/pkg/postgres"
+	"dogker/lintang/monitor-service/pkg/rabbitmq"
 	"net"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
 
-func InitHTTPandGRPC(cfg *config.Config, handler *gin.Engine) *postgres.Postgres {
+type InitWireApp struct {
+	PG  *postgres.Postgres
+	RMQ *rabbitmq.RabbitMQ
+}
+
+func InitHTTPandGRPC(cfg *config.Config, handler *gin.Engine) *InitWireApp {
 	// Router
 	pg := postgres.NewPostgres(cfg)
-	defer postgres.ClosePostgres(pg.Pool)
 	containerRepository := pgrepo.NewContainerRepo(pg)
 	grf := webapi.NewGrafanaAPI(cfg)
 	dbRepo := pgrepo.NewDashboardRepo(pg)
+
+	rmq := rabbitmq.NewRabbitMQ(cfg)
+
 	service := monitor.NewService(containerRepository, grf, dbRepo)
 	rest.NewRouter(handler, service)
 
@@ -37,5 +46,15 @@ func InitHTTPandGRPC(cfg *config.Config, handler *gin.Engine) *postgres.Postgres
 	if err != nil {
 		zap.L().Fatal("cannot start GRPC  Server", zap.Error(err))
 	}
-	return pg
+
+	// rabbitMQ task
+	_, err = rabbitmqrepo.NewMonitor(rmq.Channel)
+	if err != nil {
+		zap.L().Fatal("cannot start monitor mq: " + err.Error())
+	}
+
+	return &InitWireApp{
+		PG:  pg,
+		RMQ: rmq,
+	}
 }

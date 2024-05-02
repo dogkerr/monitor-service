@@ -6,14 +6,12 @@ package di
 import (
 	"dogker/lintang/monitor-service/app/start"
 	"dogker/lintang/monitor-service/config"
-	"dogker/lintang/monitor-service/pkg/postgres"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/wire"
 )
 
-
-func InitApp(cfg *config.Config, handler *gin.Engine) *postgres.Postgres {
+func InitApp(cfg *config.Config, handler *gin.Engine) *start.InitWireApp {
 	wire.Build(
 		start.InitHTTPandGRPC,
 	)

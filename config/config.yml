@@ -35,3 +35,6 @@ grafana:
 
 grpc:
   urlGRPC: 0.0.0.0:5001
+
+rabbitmq: 
+  rmqAddress: amqp://guest:guest@localhost:5672/
