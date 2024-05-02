@@ -12,17 +12,21 @@ import (
 	"dogker/lintang/monitor-service/pkg/rabbitmq"
 	"net"
 
+	grpcClient "google.golang.org/grpc"
+
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
 
 type InitWireApp struct {
-	PG  *postgres.Postgres
-	RMQ *rabbitmq.RabbitMQ
+	PG         *postgres.Postgres
+	RMQ        *rabbitmq.RabbitMQ
+	GRPCServer *grpcClient.Server
 }
 
 func InitHTTPandGRPC(cfg *config.Config, handler *gin.Engine) *InitWireApp {
 	// Router
+
 	pg := postgres.NewPostgres(cfg)
 	containerRepository := pgrepo.NewContainerRepo(pg)
 	grf := webapi.NewGrafanaAPI(cfg)
@@ -42,10 +46,19 @@ func InitHTTPandGRPC(cfg *config.Config, handler *gin.Engine) *InitWireApp {
 	// GRPC
 	prometheusAPI := webapi.NewPrometheusAPI(cfg.Prometheus.URL)
 	monitorServerImpl := monitor.NewMonitorServer(prometheusAPI, containerRepository)
-	err = grpc.RunGRPCServer(monitorServerImpl, listener)
-	if err != nil {
-		zap.L().Fatal("cannot start GRPC  Server", zap.Error(err))
-	}
+	grpcServerChan := make(chan *grpcClient.Server)
+
+	go func() {
+		err := grpc.RunGRPCServer(monitorServerImpl, listener, grpcServerChan)
+		if err != nil {
+			zap.L().Fatal("cannot start GRPC  Server", zap.Error(err))
+		}
+		zap.L().Info("tesss chan")
+
+	}()
+	zap.L().Info("tes tes grpc server chan")
+
+	var grpcServer = <-grpcServerChan
 
 	// rabbitMQ task
 	_, err = rabbitmqrepo.NewMonitor(rmq.Channel)
@@ -54,7 +67,8 @@ func InitHTTPandGRPC(cfg *config.Config, handler *gin.Engine) *InitWireApp {
 	}
 
 	return &InitWireApp{
-		PG:  pg,
-		RMQ: rmq,
+		PG:         pg,
+		RMQ:        rmq,
+		GRPCServer: grpcServer,
 	}
 }

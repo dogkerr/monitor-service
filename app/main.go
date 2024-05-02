@@ -59,6 +59,10 @@ func main() {
 		"rmq": func(ctx context.Context) error {
 			return wireApp.RMQ.Close()
 		},
+		"grpc": func(ctx context.Context) error {
+			wireApp.GRPCServer.GracefulStop()
+			return nil
+		},
 	})
 
 	<-wait
@@ -90,7 +94,7 @@ func gracefulShutdown(ctx context.Context, timeout time.Duration, ops map[string
 		s := make(chan os.Signal, 1)
 
 		// add any other syscalls that you want to be notified with
-		signal.Notify(s, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
+		signal.Notify(s, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, os.Interrupt)
 		<-s
 
 		log.Println("shutting down")
