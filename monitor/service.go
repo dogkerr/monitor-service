@@ -4,6 +4,7 @@ import (
 	"context"
 	"dogker/lintang/monitor-service/domain"
 	"errors"
+	"time"
 
 	"go.uber.org/zap"
 )
@@ -18,17 +19,32 @@ type GrafanaAPI interface {
 	CreateLogsDashboard(ctx context.Context, userID string) (*domain.Dashboard, error)
 }
 
+type UserRepository interface {
+	GetAllUsers(ctx context.Context) (*[]domain.User, error)
+}
+
+type MonitorMQ interface {
+	SendAllUserMetrics(ctx context.Context, usersAllMetrics domain.AllUsersMetricsMessage) error
+}
+
 type Service struct {
 	containerRepo ContainerRepository
 	grafanaClient GrafanaAPI
 	dashboardRepo DashboardRepository
+	userRepo      UserRepository
+	promeAPI      PrometheusAPI
+	monitorMQ     MonitorMQ
 }
 
-func NewService(c ContainerRepository, grf GrafanaAPI, db DashboardRepository) *Service {
+func NewService(c ContainerRepository, grf GrafanaAPI, db DashboardRepository, userDb UserRepository, prome PrometheusAPI,
+	mtqMq MonitorMQ) *Service {
 	return &Service{
 		containerRepo: c,
 		grafanaClient: grf,
 		dashboardRepo: db,
+		userRepo:      userDb,
+		promeAPI:      prome,
+		monitorMQ:     mtqMq,
 	}
 }
 
@@ -63,11 +79,11 @@ func (m *Service) GetLogsDashboard(ctx context.Context, userID string) (*domain.
 		err = m.dashboardRepo.CreateDashboard(ctx, newLogsDashboard)
 		if err != nil {
 			zap.L().Error("cant insert loki dashboard to db", zap.String("userID", userID))
-			return nil ,err 
+			return nil, err
 		}
 		return newLogsDashboard, nil
 	}
-	return res, nil 
+	return res, nil
 }
 
 // buat testing doang
@@ -78,6 +94,54 @@ func (m *Service) GetAllUserContainerService(ctx context.Context, userID string)
 		return nil, nil
 	}
 	return res, nil
+}
+
+func (m *Service) SendAllUsersMetricsToRMQ(ctx context.Context) error {
+	users, err := m.userRepo.GetAllUsers(ctx) // mendapatkan semua users
+	if err != nil {
+		zap.L().Error("m.userRepo.GetAllUsers", zap.Error(err))
+		return err
+	}
+
+	var allUsersMetrics domain.AllUsersMetricsMessage
+	for _, user := range *users {
+		// iterate all users
+		userContainers, err := m.containerRepo.GetAllUserContainer(ctx, user.ID.String())
+		if err != nil {
+			// users belum punya container
+			continue
+		}
+
+		for i := 0; i < len(*userContainers); i++ {
+			// iterate semua container  milik user
+			// set metrics container for all usersemua
+			ctr := *userContainers
+
+			ctrMetrics, err := m.promeAPI.GetMetricsByServiceIDNotGRPC(ctx, ctr[i].ServiceID, time.Now().Add(30*time.Minute))
+			if err != nil {
+				zap.L().Error("server.prome.GetMetricsByServiceId", zap.Error(err))
+				return err
+			}
+			// append usersMetricsMessag
+			allUsersMetrics.AllUsersMetrics = append(allUsersMetrics.AllUsersMetrics,
+				domain.UserMetricsMessage{
+					ContainerID:         ctr[i].ServiceID,
+					UserID:              user.ID.String(),
+					CpuUsage:            ctrMetrics.CpuUsage,
+					MemoryUsage:         ctrMetrics.MemoryUsage,
+					NetworkIngressUsage: ctrMetrics.NetworkIngressUsage,
+					NetworkEgressUsage:  ctrMetrics.NetworkEgressUsage,
+				},
+			)
+
+		}
+	}
+	err = m.monitorMQ.SendAllUserMetrics(ctx, allUsersMetrics)
+	if err != nil {
+		zap.L().Error("error pas SendAllUserMetrics ke rabbittmq: ", zap.Error(err))
+		return err
+	}
+	return nil
 }
 
 // buat testing daong

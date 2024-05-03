@@ -20,6 +20,7 @@ type MonitorService interface {
 	GetAllUserContainerService(ctx context.Context, userID string) (*[]domain.Container, error)
 	GetUserMonitorDashboard(ctx context.Context, userID string) (*domain.Dashboard, error)
 	GetLogsDashboard(ctx context.Context, userID string) (*domain.Dashboard, error)
+	SendAllUsersMetricsToRMQ(ctx context.Context) error
 }
 
 type MonitorHandler struct {
@@ -36,7 +37,16 @@ func NewMonitorHandler(rg *gin.RouterGroup, svc MonitorService) {
 		h.GET("/services", handler.GetAllUserContainerHandler)
 		h.GET("/dashboards/monitors", handler.GetUserMonitorDashboard)
 		h.GET("/dashboards/logs", handler.GetUserLogsDashboard)
+		h.POST("/cron/usersmetrics", handler.CronAllUsersHandler)
 	}
+}
+
+func (m *MonitorHandler) CronAllUsersHandler(c *gin.Context) {
+	err := m.service.SendAllUsersMetricsToRMQ(c)
+	if err != nil {
+		c.JSON(getStatusCode(err), ResponseError{Message: err.Error()})
+	}
+	c.JSON(http.StatusOK, "ok")
 }
 
 type ContainerLifecycleRes struct {

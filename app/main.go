@@ -16,6 +16,7 @@ import (
 	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"go.uber.org/zap"
 
 	"github.com/gin-gonic/gin"
 )
@@ -31,8 +32,8 @@ func init() {
 		fmt.Printf("init logger failed, err:%v\n", err)
 		return
 	}
-
 }
+
 
 func main() {
 	cfg, err := config.NewConfig()
@@ -53,9 +54,6 @@ func main() {
 		"postgres": func(ctx context.Context) error {
 			return postgres.ClosePostgres(wireApp.PG.Pool)
 		},
-		"http-server": func(ctx context.Context) error {
-			return httpServer.Shutdown()
-		},
 		"rmq": func(ctx context.Context) error {
 			return wireApp.RMQ.Close()
 		},
@@ -65,27 +63,76 @@ func main() {
 		},
 	})
 
-	<-wait
+	select {
+	case _ = <-wait:
+		fmt.Println("")
+	case err = <-httpServer.Notify():
 
-	// // Waiting signal
-	// interrupt := make(chan os.Signal, 1)
-	// signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
+		gracefulShutdownHttpNotify(context.Background(), 2*time.Second, map[string]operation{
+			"postgres": func(ctx context.Context) error {
+				return postgres.ClosePostgres(wireApp.PG.Pool)
+			},
+			
+			"rmq": func(ctx context.Context) error {
+				return wireApp.RMQ.Close()
+			},
+			"grpc": func(ctx context.Context) error {
+				wireApp.GRPCServer.GracefulStop()
+				return nil
+			},
+		})
+		time.Sleep(1 * time.Second)
+		zap.L().Info(fmt.Errorf("app - Run - httpServer.Notify: %w", err).Error())
 
-	// select {
-	// case s := <-interrupt:
-	// 	zap.L().Fatal("app - Run - signal: " + s.String())
-	// case err := <-httpServer.Notify():
-	// 	zap.L().Fatal(fmt.Errorf("app - Run - httpServer.Notify: %w", err).Error())
-	// }
+	}
 
-	// // Shutdown
-	// err = httpServer.Shutdown()
-	// if err != nil {
-	// 	zap.L().Fatal(fmt.Errorf("app - Run - httpServer.Shutdown: %w", err).Error())
-	// }
+	httpServer.Shutdown()
+
 }
 
 type operation func(ctx context.Context) error
+
+func gracefulShutdownHttpNotify(ctx context.Context, timeout time.Duration, ops map[string]operation) <-chan struct{} {
+	wait := make(chan struct{})
+	go func() {
+
+		log.Println("shutting down")
+
+		// set timeout for the ops to be done to prevent system hang
+		timeoutFunc := time.AfterFunc(timeout, func() {
+			log.Printf("timeout %d ms has been elapsed, force exit", timeout.Milliseconds())
+			os.Exit(0)
+		})
+
+		defer timeoutFunc.Stop()
+
+		var wg sync.WaitGroup
+
+		// Do the operations asynchronously to save time
+		for key, op := range ops {
+			wg.Add(1)
+			innerOp := op
+			innerKey := key
+			go func() {
+				defer wg.Done()
+
+				log.Printf("cleaning up: %s", innerKey)
+				if err := innerOp(ctx); err != nil {
+					log.Printf("%s: clean up failed: %s", innerKey, err.Error())
+					return
+				}
+
+				log.Printf("%s was shutdown gracefully", innerKey)
+			}()
+		}
+
+		wg.Wait()
+
+		close(wait)
+	}()
+
+	return wait
+}
 
 // gracefulShutdown waits for termination syscalls and doing clean up operations after received it
 func gracefulShutdown(ctx context.Context, timeout time.Duration, ops map[string]operation) <-chan struct{} {

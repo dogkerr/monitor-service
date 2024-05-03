@@ -31,10 +31,13 @@ func InitHTTPandGRPC(cfg *config.Config, handler *gin.Engine) *InitWireApp {
 	containerRepository := pgrepo.NewContainerRepo(pg)
 	grf := webapi.NewGrafanaAPI(cfg)
 	dbRepo := pgrepo.NewDashboardRepo(pg)
+	userDb := pgrepo.NewUserRepo(pg)
+	prometheusAPI := webapi.NewPrometheusAPI(cfg.Prometheus.URL)
 
 	rmq := rabbitmq.NewRabbitMQ(cfg)
+	mtrMq := rabbitmqrepo.NewMonitorMQ(rmq.Channel)
 
-	service := monitor.NewService(containerRepository, grf, dbRepo)
+	service := monitor.NewService(containerRepository, grf, dbRepo, userDb, prometheusAPI, mtrMq)
 	rest.NewRouter(handler, service)
 
 	address := cfg.GRPC.URLGrpc
@@ -44,7 +47,7 @@ func InitHTTPandGRPC(cfg *config.Config, handler *gin.Engine) *InitWireApp {
 	}
 
 	// GRPC
-	prometheusAPI := webapi.NewPrometheusAPI(cfg.Prometheus.URL)
+
 	monitorServerImpl := monitor.NewMonitorServer(prometheusAPI, containerRepository)
 	grpcServerChan := make(chan *grpcClient.Server)
 
@@ -53,18 +56,10 @@ func InitHTTPandGRPC(cfg *config.Config, handler *gin.Engine) *InitWireApp {
 		if err != nil {
 			zap.L().Fatal("cannot start GRPC  Server", zap.Error(err))
 		}
-		zap.L().Info("tesss chan")
 
 	}()
-	zap.L().Info("tes tes grpc server chan")
 
 	var grpcServer = <-grpcServerChan
-
-	// rabbitMQ task
-	_, err = rabbitmqrepo.NewMonitor(rmq.Channel)
-	if err != nil {
-		zap.L().Fatal("cannot start monitor mq: " + err.Error())
-	}
 
 	return &InitWireApp{
 		PG:         pg,

@@ -62,7 +62,7 @@ func (r *ContainerRepository) GetAllUserContainer(ctx context.Context, userID st
 
 		if err := rows.Scan(&containerID, &userID, &imageURL, &ctrStatus, &name, &containerPort, &publicPort, &createdTime, &serviceIDNull, &terminatedTimeNull,
 			&cLifeID, &lStartTime, &lStopTime, &lReplica, &clStatus); err != nil {
-			zap.L().Error("rows.Scan", zap.Error(err), zap.String("userIdD", userID.String()))
+			zap.L().Error("rows.Scan", zap.Error(err), zap.String("userID", userID.String()))
 			return nil, err
 		}
 
