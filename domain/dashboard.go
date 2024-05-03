@@ -102,7 +102,7 @@ type GrafanaMonitorConfig struct {
 				RefID          string `json:"refId"`
 				Step           int    `json:"step"`
 			} `json:"targets"`
-			Thresholds    string `json:"thresholds,omitempty"`
+			// Thresholds    string `json:"thresholds,omitempty"` // bikin error ajg
 			Title         string `json:"title"`
 			Type          string `json:"type"`
 			ValueFontSize string `json:"valueFontSize,omitempty"`

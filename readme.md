@@ -22,10 +22,10 @@ insert service_id ke rows tabel container,
 ```
 4.  jalanin docker swarm service
 ```
- docker service create --name  go_container_4  --publish 8040:80 --replicas 3 --container-label  user_id=<user_id_di_table_container>    generate_user_dashboard_dan_perfomance_testing-go_container_log_user1:latest
+ docker service create --name  go_container_4  --publish 8040:80 --replicas 3 --container-label  user_id=<user_id_di_table_container>     configs-go_container_log_user1:latest
 
 
-  docker service create --name  go_container_user2  --publish 8032:80 --replicas 1 --container-label  user_id=<user_id_di_table_container>    generate_user_dashboard_dan_perfomance_testing-go_container_log_user1:latest
+  docker service create --name  go_container_user2  --publish 8032:80 --replicas 1 --container-label  user_id=<user_id_di_table_container>    configs-go_container_log_user1:latest
 
 
 
@@ -33,7 +33,7 @@ docker service create --name  go_container_log1  --publish 8036:80 --replicas 2 
     --log-opt loki-url="http://localhost:3100/loki/api/v1/push" \
     --log-opt loki-retries=5 \
     --log-opt loki-batch-size=400 \
-    --log-opt loki-external-labels="job=docker,container_name=go_container_api_user2,userId=<user_id_di_table_container>" generate_user_dashboard_dan_perfomance_testing-go_container_log_user1:latest 
+    --log-opt loki-external-labels="job=docker,container_name=go_container_api_user2,userId=<user_id_di_table_container>" configs-go_container_log_user1:latest 
 
 
 ## contoh:
@@ -41,7 +41,7 @@ docker service create --name  go_container_log2  --publish 8038:80 --replicas 2 
     --log-opt loki-url="http://localhost:3100/loki/api/v1/push" \
     --log-opt loki-retries=5 \
     --log-opt loki-batch-size=400 \
-    --log-opt loki-external-labels="job=docker,container_name=go_container_api_user2,userId=eff92b7f-3f90-405b-9fb8-1ff12eb72431" generate_user_dashboard_dan_perfomance_testing-go_container_log_user1:latest 
+    --log-opt loki-external-labels="job=docker,container_name=go_container_api_user2,userId=eff92b7f-3f90-405b-9fb8-1ff12eb72431" configs-go_container_log_user1:latest 
 
 
 
@@ -49,7 +49,7 @@ docker service create --name  go_container_log2  --publish 8038:80 --replicas 2 
 # harus localhost:3100/loki/api/v1/push biar bisa kedetect loki (pake loki:3100 gakbisa)
 
 
-docker service create --name  go_container_log2  --publish 8037:80 --replicas 1 --container-label  user_id=<user_id_di_table_container>    generate_user_dashboard_dan_perfomance_testing-go_container_log_user1:latest 
+docker service create --name  go_container_log2  --publish 8037:80 --replicas 1 --container-label  user_id=<user_id_di_table_container>    configs-go_container_log_user1:latest 
 
 ```
 

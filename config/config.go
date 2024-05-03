@@ -61,6 +61,7 @@ type (
 	Grafana struct {
 		Apikey     string `json:"apiKey" yaml:"apiKey" env:"GRAFANA_APIKEY"`
 		URLGrafana string `json:"urlGrafana" yaml:"urlGrafana" env:"URL_GRAFANA"`
+		GrafanaFileLoc string `json:"grafanaFileLoc" env:"GRAFANA_FILE_LOCATION"`
 	}
 
 	GRPC struct {
@@ -80,6 +81,7 @@ func NewConfig() (*Config, error) {
 		log.Println(err)
 	}
 	err = cleanenv.ReadConfig(path+".env", cfg) // ../.env kalo debug  (/.env kalo go run) (.env kalo docker)
+	// err = cleanenv.ReadConfig(path+"/local.env", cfg) // local run
 
 	if err != nil {
 		return nil, fmt.Errorf("config error: %w", err)

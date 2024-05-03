@@ -72,6 +72,7 @@ services:
       - dogker
     ports: 
       - 9191:9191
+      - 5001:5001 # grpc
     env_file:
       - .env
     

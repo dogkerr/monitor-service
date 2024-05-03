@@ -29,7 +29,7 @@ func InitHTTPandGRPC(cfg *config.Config, handler *gin.Engine) *InitWireApp {
 
 	pg := postgres.NewPostgres(cfg)
 	containerRepository := pgrepo.NewContainerRepo(pg)
-	grf := webapi.NewGrafanaAPI(cfg)
+	grf := webapi.NewGrafanaAPI(cfg, cfg.Grafana.GrafanaFileLoc)
 	dbRepo := pgrepo.NewDashboardRepo(pg)
 	userDb := pgrepo.NewUserRepo(pg)
 	prometheusAPI := webapi.NewPrometheusAPI(cfg.Prometheus.URL)

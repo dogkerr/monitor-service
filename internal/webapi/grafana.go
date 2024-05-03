@@ -18,10 +18,11 @@ import (
 )
 
 type GrafanaAPI struct {
-	client *goapi.GrafanaHTTPAPI
+	client       *goapi.GrafanaHTTPAPI
+	fileLocation string
 }
 
-func NewGrafanaAPI(cfg *config.Config) *GrafanaAPI {
+func NewGrafanaAPI(cfg *config.Config, fileloc string) *GrafanaAPI {
 	grafanaCfg := goapi.TransportConfig{
 		Host:      cfg.Grafana.URLGrafana,
 		BasePath:  "/api",
@@ -33,7 +34,7 @@ func NewGrafanaAPI(cfg *config.Config) *GrafanaAPI {
 
 	grafanaClient := goapi.NewHTTPClientWithConfig(strfmt.Default, &grafanaCfg)
 
-	return &GrafanaAPI{grafanaClient}
+	return &GrafanaAPI{client: grafanaClient, fileLocation: fileloc}
 }
 
 // genrate monitoring dashboard prometheus untuk setiap docker swarm service milik user
@@ -54,10 +55,10 @@ func (g *GrafanaAPI) CreateMonitorDashboard(ctx context.Context, userID string) 
 	}
 	path, _ := os.Getwd()
 	// Open our jsonFile
-	jsonFile, err := os.Open(path + "/config/docker_prometheus_template.json")
+	jsonFile, err := os.Open(path + g.fileLocation) // config/docker_prometheus_template.json buat didalem docker container
 	// if we os.Open returns an error then handle it
 	if err != nil {
-		zap.L().Error("grafana monitor config template file not found", zap.String("path", "/config/docker_prometheus_template.json"), zap.Error(err))
+		zap.L().Error("grafana monitor config template file not found", zap.String("path", g.fileLocation), zap.Error(err))
 		return nil, err
 	}
 	// defer the closing of our jsonFile so that we can parse it later on
@@ -72,7 +73,7 @@ func (g *GrafanaAPI) CreateMonitorDashboard(ctx context.Context, userID string) 
 
 	err = json.Unmarshal(byteValue, &grafanaConfig)
 	if err != nil {
-		zap.L().Error("json.Unmarshal") // jangan di return karena emang banyak field json yang ga sesuai struct , tapi tetep bisa generate dashboard
+		zap.L().Error("json.Unmarshal", zap.Error(err)) // jangan di return karena emang banyak field json yang ga sesuai struct , tapi tetep bisa generate dashboard
 	}
 
 	// mengubah isi config grafana sesuai dg userId yg meminta request
