@@ -50,7 +50,7 @@ INSERT INTO users( username, email, password)
     VALUES ('asda', 'sadasd@gmail.com', 'asdad');
 
 /*
-14b16002-c5ec-4906-90c9-8e3749864408
+9630bd22-deb5-4540-888d-475c4da371f5
 INSERT INTO containers(user_id, image_url, status, name, container_port, public_port) 
     VALUES('<user_id_di_tabel_user>', 'prome', 'RUN', 'prome1', 9090, 9090 );
 
@@ -58,7 +58,7 @@ INSERT INTO containers(user_id, image_url, status, name, container_port, public_
 
 SELECT * FROM containers;
 
-8bd49dfb-ef83-4315-a90d-e6275f5871b4
+aecebc83-f910-4394-9298-ac0e04a1ccc7
 INSERT INTO container_lifecycles(container_id, start_time, stop_time, replica, status)
     VALUES('<container_id_di_tabel_container>', NOW(), NOW(), 3, 'RUN');
 

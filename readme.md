@@ -9,8 +9,11 @@
 
 
 1. ikutin cara nyalain prometheus di readme repo dogker/configs
-2. docker compose up [monitor service]
+2. docker compose up -d [monitor service]
 3. migrate database && insert data dummy ke masing masing table (lihat di migrations/.....up.sql)
+```
+make migrate-up
+```
 ```
 docker swarm init
 docker service ls
@@ -57,7 +60,7 @@ paling kiri id service ny.
 ```
 
 
-6. go run app/main.go
+<!-- 6. go run app/main.go -->
 7. jalanin client & kirim request ke
 ```
 http://localhost:5033/api/v1/monitors/metrics?userId=<user_id_di_database>
@@ -66,7 +69,22 @@ http://localhost:5033/api/v1/monitors/ctrMetrics?userId=<user_id_di_database>&se
 
 ```
 
-8. bikin queue 
+8. bikin queue  & binding queuee
+
+```
+
+1. nama queue=monitor-billing
+2. queue binding utk monitor-billing:
+exchangeName: monitor-billing
+routingkey: monitor.billing.all_users
+nama queue: monitor-billing
+
+```
+
+9. buat cron di dkron
+```
+curl localhost:9911/v1/jobs -XPOST -d @scheduled_metrics_jobs.json
+```
 
 
 ----

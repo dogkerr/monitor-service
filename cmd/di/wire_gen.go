@@ -7,7 +7,7 @@
 package di
 
 import (
-	"dogker/lintang/monitor-service/app/start"
+	"dogker/lintang/monitor-service/cmd/start"
 	"dogker/lintang/monitor-service/config"
 	"github.com/gin-gonic/gin"
 )

@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"dogker/lintang/monitor-service/app/di"
+	"dogker/lintang/monitor-service/cmd/di"
 	"dogker/lintang/monitor-service/config"
 	"dogker/lintang/monitor-service/internal/rest/middleware"
 	"dogker/lintang/monitor-service/pkg/httpserver"
@@ -36,7 +36,7 @@ func init() {
 
 func main() {
 	cfg, err := config.NewConfig()
-
+	
 	// init logger
 
 	if err != nil {
