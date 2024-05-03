@@ -24,7 +24,7 @@ type UserRepository interface {
 }
 
 type MonitorMQ interface {
-	SendAllUserMetrics(ctx context.Context, usersAllMetrics domain.AllUsersMetricsMessage) error
+	SendAllUserMetrics(ctx context.Context, usersAllMetrics []domain.UserMetricsMessage) error
 }
 
 type Service struct {
@@ -103,7 +103,8 @@ func (m *Service) SendAllUsersMetricsToRMQ(ctx context.Context) error {
 		return err
 	}
 
-	var allUsersMetrics domain.AllUsersMetricsMessage
+	// var allUsersMetrics domain.AllUsersMetricsMessage
+	var allUsersMetrics []domain.UserMetricsMessage
 	for _, user := range *users {
 		// iterate all users
 		userContainers, err := m.containerRepo.GetAllUserContainer(ctx, user.ID.String())
@@ -122,17 +123,25 @@ func (m *Service) SendAllUsersMetricsToRMQ(ctx context.Context) error {
 				zap.L().Error("server.prome.GetMetricsByServiceId", zap.Error(err))
 				return err
 			}
+			allUsersMetrics = append(allUsersMetrics, domain.UserMetricsMessage{
+				ContainerID:         ctr[i].ID.String(),
+				UserID:              user.ID.String(),
+				CpuUsage:            ctrMetrics.CpuUsage,
+				MemoryUsage:         ctrMetrics.MemoryUsage,
+				NetworkIngressUsage: ctrMetrics.NetworkIngressUsage,
+				NetworkEgressUsage:  ctrMetrics.NetworkEgressUsage,
+			})
 			// append usersMetricsMessag
-			allUsersMetrics.AllUsersMetrics = append(allUsersMetrics.AllUsersMetrics,
-				domain.UserMetricsMessage{
-					ContainerID:         ctr[i].ServiceID,
-					UserID:              user.ID.String(),
-					CpuUsage:            ctrMetrics.CpuUsage,
-					MemoryUsage:         ctrMetrics.MemoryUsage,
-					NetworkIngressUsage: ctrMetrics.NetworkIngressUsage,
-					NetworkEgressUsage:  ctrMetrics.NetworkEgressUsage,
-				},
-			)
+			// allUsersMetrics.AllUsersMetrics = append(allUsersMetrics.AllUsersMetrics,
+			// domain.UserMetricsMessage{
+			// 	ContainerID:         ctr[i].ID.String(),
+			// 	UserID:              user.ID.String(),
+			// 	CpuUsage:            ctrMetrics.CpuUsage,
+			// 	MemoryUsage:         ctrMetrics.MemoryUsage,
+			// 	NetworkIngressUsage: ctrMetrics.NetworkIngressUsage,
+			// 	NetworkEgressUsage:  ctrMetrics.NetworkEgressUsage,
+			// },
+			// )
 
 		}
 	}

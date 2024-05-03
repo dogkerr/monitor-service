@@ -17,10 +17,10 @@ type Postgres struct {
 
 func NewPostgres(cfg *config.Config) *Postgres {
 	dsn := url.URL{
-		Scheme: "postgres",
-		Host:   "localhost:5432",
-		User:   url.UserPassword("postgres", "pass"),
-		Path:   "dogker",
+		Scheme: cfg.Postgres.PGScheme,
+		Host:   cfg.Postgres.PGURL, // "localhost:5432"
+		User:   url.UserPassword(cfg.Postgres.Username, cfg.Postgres.Password),
+		Path:   cfg.Postgres.PGDB,
 	}
 
 	q := dsn.Query()

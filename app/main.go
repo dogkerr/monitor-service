@@ -34,7 +34,6 @@ func init() {
 	}
 }
 
-
 func main() {
 	cfg, err := config.NewConfig()
 
@@ -45,7 +44,7 @@ func main() {
 	}
 
 	handler := gin.New()
-	httpServer := httpserver.New(handler, httpserver.Port("5000"))
+	httpServer := httpserver.New(handler, httpserver.Port(cfg.HTTP.Port))
 
 	// init app
 	wireApp := di.InitApp(cfg, handler)
@@ -72,7 +71,7 @@ func main() {
 			"postgres": func(ctx context.Context) error {
 				return postgres.ClosePostgres(wireApp.PG.Pool)
 			},
-			
+
 			"rmq": func(ctx context.Context) error {
 				return wireApp.RMQ.Close()
 			},
