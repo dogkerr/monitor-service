@@ -2,6 +2,8 @@ package config
 
 import (
 	"fmt"
+	"log"
+	"os"
 
 	"github.com/ilyakaznacheev/cleanenv"
 )
@@ -9,15 +11,15 @@ import (
 type (
 	// Config -.
 	Config struct {
-		App        `yaml:"app"`
-		HTTP       `yaml:"http"`
-		Redis      `yaml:"redis"`
-		Postgres   `yaml:"postgres"`
-		LogConfig  `yaml:"logger"`
-		Prometheus `yaml:"prometheus"`
-		Grafana    `yaml:"grafana"`
-		GRPC       `yaml:"grpc"`
-		RabbitMQ `yaml:"rabbitmq"`
+		App
+		HTTP
+		Redis
+		Postgres
+		LogConfig
+		Prometheus
+		Grafana
+		GRPC
+		RabbitMQ
 	}
 
 	// App -.
@@ -32,21 +34,24 @@ type (
 	}
 
 	Redis struct {
-		Address  string `env-required:"true" yaml:"server_address" env:"REDIS_ADDRESS"`
+		Address  string `env-required:"true"  env:"REDIS_ADDRESS"`
 		Password string `env-required:"true" yaml:"password" env:"REDIS_PASSWORD"`
 	}
 
 	Postgres struct {
-		Username string `env-required:"true" yaml:"username"  env:"URL_POSTGRES"`
+		Username string `env-required:"true" yaml:"username"  env:"USERNAME_POSTGRES"`
+		PGURL    string `json:"pg_url" yaml:"pg_url" env:"PG_URL"`
 		Password string `env-required:"true" yaml:"password" env:"PASSWORD_POSTGRES"`
+		PGScheme string `env-required:"true" json:"pg_scheme" yaml:"pg_scheme" env:"PG_SCHEME"`
+		PGDB     string `env-required:"true" json:"pg_db" yaml:"pg_db" env:"PG_DB"`
 	}
 
 	LogConfig struct {
-		Level string `json:"level" yaml:"level"`
+		Level string `json:"level" yaml:"level" env:"LOG_LEVEL"`
 		// Filename   string `json:"filename" yaml:"filename"`
 		// MaxSize    int    `json:"maxsize" yaml:"maxsize"`
-		MaxAge     int `json:"max_age" yaml:"max_age"`
-		MaxBackups int `json:"max_backups" yaml:"max_backups"`
+		MaxAge     int `json:"max_age" yaml:"max_age" env:"LOG_MAXAGE"`
+		MaxBackups int `json:"max_backups" yaml:"max_backups" env:"LOG_MAXBACKUP"`
 	}
 
 	Prometheus struct {
@@ -70,8 +75,12 @@ type (
 // NewConfig returns app config.
 func NewConfig() (*Config, error) {
 	cfg := &Config{}
-
-	err := cleanenv.ReadConfig("./config/config.yml", cfg) // ../config kalau mau debug
+	path, err := os.Getwd()
+	if err != nil {
+		log.Println(err)
+	}
+	fmt.Println(path + "/../.env")
+	err = cleanenv.ReadConfig(path+"/../.env", cfg) // ../.env kalo debug
 	if err != nil {
 		return nil, fmt.Errorf("config error: %w", err)
 	}

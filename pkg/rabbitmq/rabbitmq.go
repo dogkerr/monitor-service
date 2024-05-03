@@ -37,29 +37,7 @@ func NewRabbitMQ(cfg *config.Config) *RabbitMQ {
 		zap.L().Fatal("err: channel.ExchangeDeclare : " + err.Error())
 	}
 
-	// bikin queue sekalian
-	queue, err := channel.QueueDeclare(
-		"",    // name
-		false, // durable
-		false, // delete when unused
-		true,  // exclusive
-		false, // no-wait
-		nil,   // arguments
-	)
 
-	if err != nil {
-		zap.L().Fatal("channel.QueueDeclare")
-	}
-	err = channel.QueueBind(
-		queue.Name,
-		"monitor.billing.all_users",
-		"monitor-billing",
-		false,
-		nil,
-	)
-	if err != nil {
-		zap.L().Fatal("channel.QueueBind")
-	}
 
 	err = channel.Qos(
 		1, 0,

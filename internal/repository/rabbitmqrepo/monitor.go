@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/streadway/amqp"
+	"go.uber.org/zap"
 )
 
 type MonitorMQ struct {
@@ -20,8 +21,8 @@ func NewMonitorMQ(channel *amqp.Channel) *MonitorMQ {
 	}
 }
 
-func (m *MonitorMQ) SendAllUserMetrics(ctx context.Context, usersAllMetrics domain.AllUsersMetricsMessage) error {
-	return m.publish(ctx, "monitor.billing", usersAllMetrics)
+func (m *MonitorMQ) SendAllUserMetrics(ctx context.Context, usersAllMetrics []domain.UserMetricsMessage) error {
+	return m.publish(ctx, "monitor.billing.all_users", usersAllMetrics)
 }
 
 func (m *MonitorMQ) publish(ctx context.Context, routingKey string, event interface{}) error {
@@ -29,6 +30,7 @@ func (m *MonitorMQ) publish(ctx context.Context, routingKey string, event interf
 	var b bytes.Buffer
 
 	if err := gob.NewEncoder(&b).Encode(event); err != nil {
+		zap.L().Error("gob.NewEncoder(&b).Encode(event)", zap.Error(err))
 		return err
 	}
 
@@ -44,6 +46,7 @@ func (m *MonitorMQ) publish(ctx context.Context, routingKey string, event interf
 			Timestamp:   time.Now(),
 		})
 	if err != nil {
+		zap.L().Error("m.ch.Publish: ", zap.Error(err))
 		return err
 	}
 

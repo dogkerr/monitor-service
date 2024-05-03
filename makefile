@@ -55,24 +55,24 @@ migrate-create:  ### create new migration
 .PHONY: migrate-create
 
 migrate-up: ### migration up
-	migrate -path migrations -database '$(PG_URL)?sslmode=disable' up
+	migrate -path migrations -database '$(PG_MIGRATE_URL)?sslmode=disable' up
 .PHONY: migrate-up
 
 
 migrate-down: ### migration down
-	migrate -path migrations -database '$(PG_URL)?sslmode=disable' down
+	migrate -path migrations -database '$(PG_MIGRATE_URL)?sslmode=disable' down
 .PHONY: migrate-down
 
 migrate-version:
-	migrate -path migrations -database '$(PG_URL)?sslmode=disable' version
+	migrate -path migrations -database '$(PG_MIGRATE_URL)?sslmode=disable' version
 .PHONY: migrate-version
 
 migrate-goto:
-	migrate -path migrations -database '$(PG_URL)?sslmode=disable' goto $(v)
+	migrate -path migrations -database '$(PG_MIGRATE_URL)?sslmode=disable' goto $(v)
 .PHONY: migrate-goto
 
 migrate-force:
-	migrate -path migrations -database '$(PG_URL)?sslmode=disable' force $(v)
+	migrate -path migrations -database '$(PG_MIGRATE_URL)?sslmode=disable' force $(v)
 .PHONY: migrate-force
 
 proto:

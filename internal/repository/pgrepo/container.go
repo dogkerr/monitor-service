@@ -52,6 +52,10 @@ func (r *ContainerRepository) GetAllUserContainer(ctx context.Context, userID st
 		var ctrStatus string
 
 		var cLifeID uuid.UUID
+
+		var lStartTimeNull sql.NullTime
+		var lStopTimeNull sql.NullTime
+
 		var lStartTime time.Time
 		var lStopTime time.Time
 		var lReplica uint64
@@ -61,9 +65,15 @@ func (r *ContainerRepository) GetAllUserContainer(ctx context.Context, userID st
 		var cLife domain.ContainerLifecycle
 
 		if err := rows.Scan(&containerID, &userID, &imageURL, &ctrStatus, &name, &containerPort, &publicPort, &createdTime, &serviceIDNull, &terminatedTimeNull,
-			&cLifeID, &lStartTime, &lStopTime, &lReplica, &clStatus); err != nil {
+			&cLifeID, &lStartTimeNull, &lStopTimeNull, &lReplica, &clStatus); err != nil {
 			zap.L().Error("rows.Scan", zap.Error(err), zap.String("userID", userID.String()))
 			return nil, err
+		}
+		if lStartTimeNull.Valid {
+			lStartTime = lStartTimeNull.Time
+		}
+		if lStopTimeNull.Valid {
+			lStopTime = lStopTimeNull.Time
 		}
 
 		if serviceIDNull.Valid {
