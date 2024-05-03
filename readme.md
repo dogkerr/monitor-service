@@ -66,6 +66,8 @@ http://localhost:5033/api/v1/monitors/ctrMetrics?userId=<user_id_di_database>&se
 
 ```
 
+8. bikin queue 
+
 
 ----
 
