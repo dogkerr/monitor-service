@@ -2,7 +2,7 @@
 ### Cara testing
 ```
 1. buat folder pb
-2. buat .env isinya PG_URL
+2. buat .env isinya samain .env.example
 3. generate protobuf code `make proto`
 
 ```
