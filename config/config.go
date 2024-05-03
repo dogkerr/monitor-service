@@ -80,6 +80,7 @@ func NewConfig() (*Config, error) {
 		log.Println(err)
 	}
 	err = cleanenv.ReadConfig(path+".env", cfg) // ../.env kalo debug  (/.env kalo go run) (.env kalo docker)
+
 	if err != nil {
 		return nil, fmt.Errorf("config error: %w", err)
 	}

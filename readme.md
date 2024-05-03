@@ -15,6 +15,7 @@
 make migrate-up
 ```
 ```
+
 docker swarm init
 docker service ls
 insert service_id ke rows tabel container,
@@ -69,6 +70,7 @@ http://localhost:5033/api/v1/monitors/ctrMetrics?userId=<user_id_di_database>&se
 
 ```
 
+
 8. bikin queue  & binding queuee
 
 ```
@@ -87,7 +89,7 @@ curl localhost:9911/v1/jobs -XPOST -d @scheduled_metrics_jobs.json
 ```
 
 
-----
+
 
 ### query prome
 ```
