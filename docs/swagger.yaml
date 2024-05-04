@@ -1,0 +1,135 @@
+basePath: /api/v1/
+definitions:
+  domain.Dashboard:
+    description: ini data dashboard (isinya id, owner, uid, type)
+    properties:
+      id:
+        description: id dashboard di database
+        type: string
+      owner:
+        description: owner /pemilik dashboard
+        type: string
+      type:
+        description: type dashboard
+        type: string
+      uid:
+        description: uid dashboard di grafana
+        type: string
+    type: object
+  rest.ResponseError:
+    properties:
+      message:
+        type: string
+    type: object
+  rest.dashboardRes:
+    description: Response saat get metrics dashboard milik user
+    properties:
+      cpu_usage_link:
+        description: link dashboard cpu usage per contaainer
+        type: string
+      dashboard:
+        allOf:
+        - $ref: '#/definitions/domain.Dashboard'
+        description: data dashboard milik user (isinya uid, owner, type, id)
+      memory_swap_per_container_link:
+        description: link memory swap per container
+        type: string
+      memory_usage_not_graph:
+        description: link memory usage per container gak pake graph cuma angka
+        type: string
+      memory_usage_per_container_link:
+        description: link memory usage per container pake graph
+        type: string
+      overall_cpu_usage:
+        description: link overal cpu usage untuk semua container milik user
+        type: string
+      received_network_link:
+        description: link dashboard metrics received network per contaainer
+        example: http://127.0.0.1/d-solo/VWUxxYP3/vwuxxyp3?orgId=1&refresh=5s&from=now-5m&theme=light&to=now&panelId=8
+        type: string
+      send_network_link:
+        description: link dashboard metrics send networks per contaainer
+        type: string
+      total_container:
+        description: jumlah container yang dijalankan user di dogker
+        type: string
+    type: object
+  rest.logsDashboardRes:
+    description: Response saat get logs dashboard milik user
+    properties:
+      dashboard:
+        allOf:
+        - $ref: '#/definitions/domain.Dashboard'
+        description: data dashboard milik user (isinya uid, owner, type, id)
+      logs_dashboard_link:
+        description: link dashboard logs yang diembed di frontend
+        example: http://localhost:3000/d/YwXYwNAj/ywxywnaj?orgId=1&var-search_filter=&var-Levels=info&var-container_name=go_container_log2&var-Method=GET&from=1714796971638&to=1714797271638&theme=light
+        type: string
+    type: object
+host: locahost:9191
+info:
+  contact:
+    name: Lintang BS
+  description: Monitor Servicee buat nampilin logs dashboard & conainer metrics dashboard
+    milik user
+  termsOfService: http://swagger.io/terms/
+  title: Dogker Monitor Service
+  version: "1.0"
+paths:
+  /monitors/dashboards/logs:
+    get:
+      consumes:
+      - application/json
+      description: GetUserLogsDashboard
+      operationId: logs_dashboard
+      parameters:
+      - description: init userId milik user harusnya pake acccess token di header
+          sih tapi karena aku masih belum tau integrate ke auth service pake ini dulu
+          wkw
+        in: query
+        name: userID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ok
+          schema:
+            $ref: '#/definitions/rest.logsDashboardRes'
+        "500":
+          description: internal server error (bug/error di kode)
+          schema:
+            $ref: '#/definitions/rest.ResponseError'
+      summary: Mendapatkan Dashboard Logs containers milik User
+      tags:
+      - monitor
+  /monitors/dashboards/monitors:
+    get:
+      consumes:
+      - application/json
+      description: GetUserMonitorDashboard
+      operationId: monitor_dashboard
+      parameters:
+      - description: init userId milik user harusnya pake acccess token di header
+          sih tapi karena aku masih belum tau integrate ke auth service pake ini dulu
+          wkw
+        in: query
+        name: userID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ok
+          schema:
+            $ref: '#/definitions/rest.dashboardRes'
+        "500":
+          description: internal server error (bug/error di kode)
+          schema:
+            $ref: '#/definitions/rest.ResponseError'
+      summary: Mendapatkan Dashboard Container metrics milik User
+      tags:
+      - monitor
+swagger: "2.0"

@@ -20,6 +20,8 @@ make migrate-up
 docker swarm init
 docker service ls
 insert service_id ke rows tabel container,
+
+masukin service accouunt acceess token Grafana ke .env monitor-service
 ```
 4.  jalanin docker swarm service
 ```

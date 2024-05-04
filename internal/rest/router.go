@@ -4,13 +4,26 @@ import (
 	"dogker/lintang/monitor-service/internal/rest/middleware"
 	"net/http"
 
+	_ "dogker/lintang/monitor-service/docs"
+
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-func NewRouter(handler *gin.Engine, mSvc MonitorService) *gin.RouterGroup{
+//  NewRouter -.
+//  Swagger spec:
+//	@title			Dogker Monitor Service
+//	@version		1.0
+//	@description	Monitor Servicee buat nampilin logs dashboard & conainer metrics dashboard milik user
+//	@termsOfService	http://swagger.io/terms/
+//	@host			locahost:9191
+//	@BasePath		/api/v1/
+
+// @contact.name	Lintang BS
+func NewRouter(handler *gin.Engine, mSvc MonitorService) *gin.RouterGroup {
 	// router
 	handler.Use(middleware.GinLogger(), middleware.GinRecovery(true))
 
@@ -28,5 +41,5 @@ func NewRouter(handler *gin.Engine, mSvc MonitorService) *gin.RouterGroup{
 	{
 		NewMonitorHandler(h, mSvc)
 	}
-	return h 
+	return h
 }

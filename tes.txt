@@ -1,0 +1,10 @@
+received network traffic: http://127.0.0.1/d-solo/VWUxxYP3/vwuxxyp3?orgId=1&refresh=5s&from=now-5m&theme=light&to=now&panelId=8
+send network traffic: http://127.0.0.1/d-solo/VWUxxYP3/vwuxxyp3?orgId=1&refresh=5s&from=now-5m&theme=light&to=now&panelId=9
+cpu usage per container: http://127.0.0.1/d-solo/VWUxxYP3/vwuxxyp3?orgId=1&refresh=5s&from=now-5m&theme=light&to=now&panelId=1
+memory swap per container: http://127.0.0.1/d-solo/VWUxxYP3/vwuxxyp3?orgId=1&refresh=5s&from=now-5m&theme=light&to=now&panelId=34
+memory usage per conatainer: http://127.0.0.1/d-solo/VWUxxYP3/vwuxxyp3?orgId=1&refresh=5s&from=now-5m&theme=light&to=now&panelId=10
+memory usage bukan grafik: http://127.0.0.1/d-solo/VWUxxYP3/vwuxxyp3?orgId=1&refresh=5s&from=now-5m&theme=light&to=now&panelId=37
+cpu usage overall for this all user container: http://127.0.0.1/d-solo/VWUxxYP3/vwuxxyp3?orgId=1&refresh=5s&from=now-5m&theme=light&to=now&panelId=5
+jumlah kontainer user: http://127.0.0.1/d-solo/VWUxxYP3/vwuxxyp3?orgId=1&refresh=5s&from=now-5m&theme=light&to=now&panelId=31
+
+

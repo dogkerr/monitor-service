@@ -1,10 +1,20 @@
 package domain
 
+import (
+	_ "dogker/lintang/monitor-service/docs"
+)
+
+// Dashboard
+// @Description ini data dashboard (isinya id, owner, uid, type)
 type Dashboard struct {
-	Id    string `json:"id"`
+	// id dashboard di database
+	Id string `json:"id"`
+	// owner /pemilik dashboard
 	Owner string `json:"owner"`
-	Uid   string `json:"uid"`
-	Type  string `json:"type"`
+	// uid dashboard di grafana
+	Uid string `json:"uid"`
+	// type dashboard
+	Type string `json:"type"`
 }
 
 // grafana config
@@ -337,13 +347,13 @@ type GrafanaLogsDashboard struct {
 					Value    string `json:"value"`
 				} `json:"options"`
 				Query       interface{} `json:"query"`
-				SkipURLSync bool   `json:"skipUrlSync"`
-				Type        string `json:"type"`
-				Description string `json:"description,omitempty"`
-				IncludeAll  bool   `json:"includeAll,omitempty"`
-				Label       string `json:"label,omitempty"`
-				Multi       bool   `json:"multi,omitempty"`
-				QueryValue  string `json:"queryValue,omitempty"`
+				SkipURLSync bool        `json:"skipUrlSync"`
+				Type        string      `json:"type"`
+				Description string      `json:"description,omitempty"`
+				IncludeAll  bool        `json:"includeAll,omitempty"`
+				Label       string      `json:"label,omitempty"`
+				Multi       bool        `json:"multi,omitempty"`
+				QueryValue  string      `json:"queryValue,omitempty"`
 				Datasource  struct {
 					Type string `json:"type"`
 					UID  string `json:"uid"`

@@ -24,11 +24,11 @@ compose-down: ### Down docker-compose
 	docker-compose down --remove-orphans
 .PHONY: compose-down
 
-swag-v1: ### swag init
-	swag init -g internal/controller/http/v1/router.go
-.PHONY: swag-v1
+swag: ### swag init
+	swag init -g router.go  -d internal/rest --parseDependency
+.PHONY: swag
 
-run: swag-v1 ### swag run
+run: swag ### swag run
 	go mod tidy && go mod download && \
 	DISABLE_SWAGGER_HTTP_HANDLER='' GIN_MODE=debug CGO_ENABLED=0 go run -tags migrate ./cmd/app
 .PHONY: run
