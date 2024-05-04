@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"dogker/lintang/monitor-service/domain"
+	"dogker/lintang/monitor-service/pkg/rabbitmq"
 	"encoding/gob"
 	"time"
 
@@ -15,9 +16,9 @@ type MonitorMQ struct {
 	ch *amqp.Channel
 }
 
-func NewMonitorMQ(channel *amqp.Channel) *MonitorMQ {
+func NewMonitorMQ(rmq *rabbitmq.RabbitMQ) *MonitorMQ {
 	return &MonitorMQ{
-		ch: channel,
+		ch: rmq.Channel,
 	}
 }
 

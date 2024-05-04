@@ -4,6 +4,7 @@
 1. buat folder pb
 2. buat .env isinya samain .env.example
 3. generate protobuf code `make proto`
+allow firewall port https://docs.docker.com/engine/swarm/swarm-tutorial/
 
 ```
 
@@ -29,11 +30,18 @@ insert service_id ke rows tabel container,
 
 
 
-docker service create --name  go_container_log1  --publish 8036:80 --replicas 2 --container-label  user_id=<user_id_di_table_container> --log-driver=loki \
+docker service create --name  go_container_log1  --publish 8231:8231 --replicas 2 --container-label  user_id=<user_id_di_table_container> --log-driver=loki \
     --log-opt loki-url="http://localhost:3100/loki/api/v1/push" \
     --log-opt loki-retries=5 \
     --log-opt loki-batch-size=400 \
-    --log-opt loki-external-labels="job=docker,container_name=go_container_api_user2,userId=<user_id_di_table_container>" configs-go_container_log_user1:latest 
+    --log-opt loki-external-labels="job=docker,container_name=go_container_log1,userId=<user_id_di_table_container>" configs-go_container_log_user1:latest 
+
+
+docker service create --name  go_container_log2  --publish 8232:8232 --replicas 2 --container-label  user_id=<user_id_di_table_container> --log-driver=loki \
+    --log-opt loki-url="http://localhost:3100/loki/api/v1/push" \
+    --log-opt loki-retries=5 \
+    --log-opt loki-batch-size=400 \
+    --log-opt loki-external-labels="job=docker,container_name=go_container_log2,userId=<user_id_di_table_container>" configs-go_container_log_user2:latest 
 
 
 ## contoh:
@@ -75,11 +83,12 @@ http://localhost:5033/api/v1/monitors/ctrMetrics?userId=<user_id_di_database>&se
 
 ```
 
-1. nama queue=monitor-billing
+1. nama queue=monitor-billing, type: Quorum
 2. queue binding utk monitor-billing:
 exchangeName: monitor-billing
 routingkey: monitor.billing.all_users
 nama queue: monitor-billing
+
 
 ```
 

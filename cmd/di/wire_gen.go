@@ -7,14 +7,40 @@
 package di
 
 import (
-	"dogker/lintang/monitor-service/cmd/start"
 	"dogker/lintang/monitor-service/config"
-	"github.com/gin-gonic/gin"
+	"dogker/lintang/monitor-service/internal/repository/pgrepo"
+	"dogker/lintang/monitor-service/internal/repository/rabbitmqrepo"
+	"dogker/lintang/monitor-service/internal/rest"
+	"dogker/lintang/monitor-service/internal/webapi"
+	"dogker/lintang/monitor-service/monitor"
+	"dogker/lintang/monitor-service/pb"
+	"dogker/lintang/monitor-service/pkg/postgres"
+	"dogker/lintang/monitor-service/pkg/rabbitmq"
+	"github.com/google/wire"
 )
 
 // Injectors from wire.go:
 
-func InitApp(cfg *config.Config, handler *gin.Engine) *start.InitWireApp {
-	initWireApp := start.InitHTTPandGRPC(cfg, handler)
-	return initWireApp
+func InitMonitorService(rmq *rabbitmq.RabbitMQ, pgRepo *postgres.Postgres, cfg *config.Config) *monitor.Service {
+	containerRepository := pgrepo.NewContainerRepo(pgRepo)
+	grafanaAPI := webapi.NewGrafanaAPI(cfg)
+	dashboardRepository := pgrepo.NewDashboardRepo(pgRepo)
+	userRepository := pgrepo.NewUserRepo(pgRepo)
+	prometheusAPI := webapi.NewPrometheusAPI(cfg)
+	monitorMQ := rabbitmqrepo.NewMonitorMQ(rmq)
+	service := monitor.NewService(containerRepository, grafanaAPI, dashboardRepository, userRepository, prometheusAPI, monitorMQ)
+	return service
 }
+
+func InitMonitorGrpcService(pgRepo *postgres.Postgres, cfg *config.Config) *monitor.MonitorServerImpl {
+	prometheusAPI := webapi.NewPrometheusAPI(cfg)
+	containerRepository := pgrepo.NewContainerRepo(pgRepo)
+	monitorServerImpl := monitor.NewMonitorServer(prometheusAPI, containerRepository)
+	return monitorServerImpl
+}
+
+// wire.go:
+
+var ProviderSet wire.ProviderSet = wire.NewSet(monitor.NewService, pgrepo.NewContainerRepo, webapi.NewGrafanaAPI, pgrepo.NewDashboardRepo, pgrepo.NewUserRepo, webapi.NewPrometheusAPI, rabbitmqrepo.NewMonitorMQ, wire.Bind(new(rest.MonitorService), new(*monitor.Service)), wire.Bind(new(monitor.ContainerRepository), new(*pgrepo.ContainerRepository)), wire.Bind(new(monitor.GrafanaAPI), new(*webapi.GrafanaAPI)), wire.Bind(new(monitor.DashboardRepository), new(*pgrepo.DashboardRepository)), wire.Bind(new(monitor.UserRepository), new(*pgrepo.UserRepository)), wire.Bind(new(monitor.PrometheusAPI), new(*webapi.PrometheusAPI)), wire.Bind(new(monitor.MonitorMQ), new(*rabbitmqrepo.MonitorMQ)))
+
+var ProviderSetMonitorGrpcSet wire.ProviderSet = wire.NewSet(monitor.NewMonitorServer, webapi.NewPrometheusAPI, pgrepo.NewContainerRepo, wire.Bind(new(monitor.PrometheusAPI), new(*webapi.PrometheusAPI)), wire.Bind(new(monitor.ContainerRepository), new(*pgrepo.ContainerRepository)), wire.Bind(new(pb.MonitorServiceServer), new(*monitor.MonitorServerImpl)))

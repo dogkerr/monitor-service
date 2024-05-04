@@ -2,6 +2,7 @@ package webapi
 
 import (
 	"context"
+	"dogker/lintang/monitor-service/config"
 	"dogker/lintang/monitor-service/domain"
 	"fmt"
 	"time"
@@ -17,9 +18,9 @@ type PrometheusAPI struct {
 	client *api.Client
 }
 
-func NewPrometheusAPI(address string) *PrometheusAPI {
+func NewPrometheusAPI(cfg *config.Config) *PrometheusAPI {
 	conf := api.Config{
-		Address: address,
+		Address: cfg.Prometheus.URL,
 	}
 	promeClient, err := api.NewClient(conf)
 	if err != nil {

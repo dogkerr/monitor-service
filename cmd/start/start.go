@@ -1,13 +1,10 @@
 package start
 
 import (
+	"dogker/lintang/monitor-service/cmd/di"
 	"dogker/lintang/monitor-service/config"
 	"dogker/lintang/monitor-service/internal/grpc"
-	"dogker/lintang/monitor-service/internal/repository/pgrepo"
-	"dogker/lintang/monitor-service/internal/repository/rabbitmqrepo"
 	"dogker/lintang/monitor-service/internal/rest"
-	"dogker/lintang/monitor-service/internal/webapi"
-	"dogker/lintang/monitor-service/monitor"
 	"dogker/lintang/monitor-service/pkg/postgres"
 	"dogker/lintang/monitor-service/pkg/rabbitmq"
 	"net"
@@ -28,17 +25,18 @@ func InitHTTPandGRPC(cfg *config.Config, handler *gin.Engine) *InitWireApp {
 	// Router
 
 	pg := postgres.NewPostgres(cfg)
-	containerRepository := pgrepo.NewContainerRepo(pg)
-	grf := webapi.NewGrafanaAPI(cfg, cfg.Grafana.GrafanaFileLoc)
-	dbRepo := pgrepo.NewDashboardRepo(pg)
-	userDb := pgrepo.NewUserRepo(pg)
-	prometheusAPI := webapi.NewPrometheusAPI(cfg.Prometheus.URL)
-
 	rmq := rabbitmq.NewRabbitMQ(cfg)
-	mtrMq := rabbitmqrepo.NewMonitorMQ(rmq.Channel)
+	// containerRepository := pgrepo.NewContainerRepo(pg)
+	// grf := webapi.NewGrafanaAPI(cfg)
+	// dbRepo := pgrepo.NewDashboardRepo(pg)
+	// userDb := pgrepo.NewUserRepo(pg)
+	// prometheusAPI := webapi.NewPrometheusAPI(cfg)
 
-	service := monitor.NewService(containerRepository, grf, dbRepo, userDb, prometheusAPI, mtrMq)
-	rest.NewRouter(handler, service)
+	// mtrMq := rabbitmqrepo.NewMonitorMQ(rmq)
+
+	// service := monitor.NewService(containerRepository, grf, dbRepo, userDb, prometheusAPI, mtrMq)
+	monitorSvc := di.InitMonitorService(rmq, pg, cfg)
+	rest.NewRouter(handler, monitorSvc)
 
 	address := cfg.GRPC.URLGrpc
 	listener, err := net.Listen("tcp", address)
@@ -48,7 +46,8 @@ func InitHTTPandGRPC(cfg *config.Config, handler *gin.Engine) *InitWireApp {
 
 	// GRPC
 
-	monitorServerImpl := monitor.NewMonitorServer(prometheusAPI, containerRepository)
+	// monitorServerImpl := monitor.NewMonitorServer(prometheusAPI, containerRepository)
+	monitorServerImpl := di.InitMonitorGrpcService(pg, cfg)
 	grpcServerChan := make(chan *grpcClient.Server)
 
 	go func() {

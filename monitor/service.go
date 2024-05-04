@@ -131,17 +131,6 @@ func (m *Service) SendAllUsersMetricsToRMQ(ctx context.Context) error {
 				NetworkIngressUsage: ctrMetrics.NetworkIngressUsage,
 				NetworkEgressUsage:  ctrMetrics.NetworkEgressUsage,
 			})
-			// append usersMetricsMessag
-			// allUsersMetrics.AllUsersMetrics = append(allUsersMetrics.AllUsersMetrics,
-			// domain.UserMetricsMessage{
-			// 	ContainerID:         ctr[i].ID.String(),
-			// 	UserID:              user.ID.String(),
-			// 	CpuUsage:            ctrMetrics.CpuUsage,
-			// 	MemoryUsage:         ctrMetrics.MemoryUsage,
-			// 	NetworkIngressUsage: ctrMetrics.NetworkIngressUsage,
-			// 	NetworkEgressUsage:  ctrMetrics.NetworkEgressUsage,
-			// },
-			// )
 
 		}
 	}

@@ -55,12 +55,17 @@ INSERT INTO users( username, email, password)
 INSERT INTO containers(user_id, image_url, status, name, container_port, public_port) 
     VALUES('<user_id_di_tabel_user>', 'prome', 'RUN', 'prome1', 9090, 9090 );
 
+INSERT INTO containers(user_id, image_url, status, name, container_port, public_port) 
+    VALUES('<user_id_di_tabel_user>', 'prome2', 'RUN', 'prome2', 9091, 9091 );
+
+
 
 
 SELECT * FROM containers;
 
 aecebc83-f910-4394-9298-ac0e04a1ccc7
 
+// container 1
 INSERT INTO container_lifecycles(container_id, start_time, stop_time, replica, status)
     VALUES('<container_id_di_tabel_container>', NOW(), NOW(), 3, 'RUN');
 
@@ -68,6 +73,11 @@ INSERT INTO container_lifecycles(container_id, start_time, stop_time, replica, s
 INSERT INTO container_lifecycles(container_id, start_time, stop_time, replica, status)
     VALUES('<container_id_di_tabel_container>', NOW(), NOW(), 3, 'STOPPED');
 
+INSERT INTO container_lifecycles(container_id, start_time, stop_time, replica, status)
+    VALUES('<container_id_di_tabel_container>', NOW(), NOW(), 3, 'RUN');
+
+
+// ctr2
 INSERT INTO container_lifecycles(container_id, start_time, stop_time, replica, status)
     VALUES('<container_id_di_tabel_container>', NOW(), NOW(), 3, 'RUN');
 

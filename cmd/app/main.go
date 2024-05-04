@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"dogker/lintang/monitor-service/cmd/di"
+	"dogker/lintang/monitor-service/cmd/start"
 	"dogker/lintang/monitor-service/config"
 	"dogker/lintang/monitor-service/internal/rest/middleware"
 	"dogker/lintang/monitor-service/pkg/httpserver"
@@ -36,7 +36,7 @@ func init() {
 
 func main() {
 	cfg, err := config.NewConfig()
-	
+
 	// init logger
 
 	if err != nil {
@@ -47,7 +47,7 @@ func main() {
 	httpServer := httpserver.New(handler, httpserver.Port(cfg.HTTP.Port))
 
 	// init app
-	wireApp := di.InitApp(cfg, handler)
+	wireApp := start.InitHTTPandGRPC(cfg, handler)
 
 	wait := gracefulShutdown(context.Background(), 2*time.Second, map[string]operation{
 		"postgres": func(ctx context.Context) error {

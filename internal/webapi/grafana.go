@@ -22,7 +22,7 @@ type GrafanaAPI struct {
 	fileLocation string
 }
 
-func NewGrafanaAPI(cfg *config.Config, fileloc string) *GrafanaAPI {
+func NewGrafanaAPI(cfg *config.Config) *GrafanaAPI {
 	grafanaCfg := goapi.TransportConfig{
 		Host:      cfg.Grafana.URLGrafana,
 		BasePath:  "/api",
@@ -34,7 +34,7 @@ func NewGrafanaAPI(cfg *config.Config, fileloc string) *GrafanaAPI {
 
 	grafanaClient := goapi.NewHTTPClientWithConfig(strfmt.Default, &grafanaCfg)
 
-	return &GrafanaAPI{client: grafanaClient, fileLocation: fileloc}
+	return &GrafanaAPI{client: grafanaClient, fileLocation: cfg.Grafana.GrafanaFileLoc}
 }
 
 // genrate monitoring dashboard prometheus untuk setiap docker swarm service milik user
@@ -124,7 +124,7 @@ func (g *GrafanaAPI) CreateMonitorDashboard(ctx context.Context, userID string) 
 		Dashboard: grafanaConfig.Dashboard,
 	})
 	if err != nil {
-		zap.L().Error("cant create new dashboard", zap.String("userId", userID))
+		zap.L().Error("cant create new dashboard", zap.Error(err), zap.String("userId", userID))
 		return nil, err
 	}
 
@@ -194,11 +194,11 @@ func (g *GrafanaAPI) CreateLogsDashboard(ctx context.Context, userID string) (*d
 		zap.L().Debug("json.Unmarshal") // jangan di return karena emang banyak field json yang ga sesuai struct, tapi tetep bisa generate dashboard
 	}
 
-	for i := 0; i < len(grafanaConfig.Dashboard.Panels); i++ {
-		panel := grafanaConfig.Dashboard.Panels[i]
-		panel.Datasource.UID = datasourceID
+	for _, panel := range grafanaConfig.Dashboard.Panels {
 		panel.Targets[0].Datasource.UID = datasourceID
 	}
+	grafanaConfig.Dashboard.Panels[0].Datasource.UID = datasourceID
+	grafanaConfig.Dashboard.Panels[1].Datasource.UID = datasourceID
 
 	list := grafanaConfig.Dashboard.Templating.List
 	list[2].Datasource.UID = datasourceID
@@ -226,12 +226,15 @@ func (g *GrafanaAPI) CreateLogsDashboard(ctx context.Context, userID string) (*d
 	grafanaConfig.Dashboard.UID = randomString
 	grafanaConfig.Dashboard.Style = "light"
 
+	zap.L().Debug("new panel datasource ID: ", zap.String("panel.Datasource.UID ", grafanaConfig.Dashboard.Panels[0].Datasource.UID))
+	zap.L().Debug("new panel datasource ID2: ", zap.String("panel.Datasource.UID ", grafanaConfig.Dashboard.Panels[1].Datasource.UID))
+
 	makeLogsDB, err := g.client.Dashboards.PostDashboard(&models.SaveDashboardCommand{
 		Dashboard: grafanaConfig.Dashboard,
 	})
 
 	if err != nil {
-		zap.L().Error("cant create new dashboard", zap.String("userId", userID))
+		zap.L().Error("cant create new dashboard", zap.Error(err), zap.String("userId", userID))
 		return nil, err
 	}
 	dbUID := *makeLogsDB.GetPayload().UID
