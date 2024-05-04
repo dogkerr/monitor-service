@@ -20,7 +20,6 @@ import (
 
 	_ "dogker/lintang/monitor-service/docs"
 
-	"github.com/swaggo/gin-swagger"
 
 	"github.com/gin-gonic/gin"
 )
@@ -37,7 +36,6 @@ func init() {
 		return
 	}
 }
-
 
 func main() {
 	cfg, err := config.NewConfig()
