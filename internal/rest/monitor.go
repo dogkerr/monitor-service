@@ -46,6 +46,7 @@ func (m *MonitorHandler) CronAllUsersHandler(c *gin.Context) {
 	err := m.service.SendAllUsersMetricsToRMQ(c)
 	if err != nil {
 		c.JSON(getStatusCode(err), ResponseError{Message: err.Error()})
+		return
 	}
 	c.JSON(http.StatusOK, "ok")
 }
@@ -82,6 +83,7 @@ func (m *MonitorHandler) GetAllUserContainerHandler(c *gin.Context) {
 	sv, err := m.service.GetAllUserContainerService(c, userID)
 	if err != nil {
 		c.JSON(getStatusCode(err), ResponseError{Message: err.Error()})
+		return
 	}
 	var res []serviceResponse
 	for i := range *sv {
@@ -113,8 +115,9 @@ func (m *MonitorHandler) GetAllUserContainerHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, allUserCtrRes{res})
 }
 
-//	 dashboardRes
-//	@Description	Response saat get metrics dashboard milik user
+//	dashboardRes
+//
+// @Description	Response saat get metrics dashboard milik user
 type dashboardRes struct {
 	// data dashboard milik user (isinya uid, owner, type, id)
 	Dashboard domain.Dashboard `json:"dashboard"`
@@ -136,22 +139,24 @@ type dashboardRes struct {
 	TotalContainer string `json:"total_container"`
 }
 
-//	 GetUserMonitorDashboard godoc
-//	@Summary		Mendapatkan Dashboard Container metrics milik User
-//	@Description	GetUserMonitorDashboard
-//	@ID				monitor_dashboard
-//	@Tags			monitor
-//	@Accept			json
-//	@Produce		json
-//	@Param			userID	query	string			true	"init userId milik user harusnya pake acccess token di header sih tapi karena aku masih belum tau integrate ke auth service pake ini dulu wkw"
-//	@Success		200		{object}	dashboardRes	"ok"
-//	@Failure		500		{object}	ResponseError	"internal server error (bug/error di kode)"
-//	@Router			/monitors/dashboards/monitors [get]
+//	GetUserMonitorDashboard godoc
+//
+// @Summary		Mendapatkan Dashboard Container metrics milik User
+// @Description	GetUserMonitorDashboard
+// @ID				monitor_dashboard
+// @Tags			monitor
+// @Accept			json
+// @Produce		json
+// @Param			userID	query	string			true	"init userId milik user harusnya pake acccess token di header sih tapi karena aku masih belum tau integrate ke auth service pake ini dulu wkw"
+// @Success		200		{object}	dashboardRes	"ok"
+// @Failure		500		{object}	ResponseError	"internal server error (bug/error di kode)"
+// @Router			/monitors/dashboards/monitors [get]
 func (m *MonitorHandler) GetUserMonitorDashboard(c *gin.Context) {
 	userID := c.Query("userID")
 	sv, err := m.service.GetUserMonitorDashboard(c, userID)
 	if err != nil {
 		c.JSON(getStatusCode(err), ResponseError{Message: err.Error()})
+		return
 	}
 	dbResult := dashboardRes{
 		Dashboard:               *sv,
@@ -167,8 +172,9 @@ func (m *MonitorHandler) GetUserMonitorDashboard(c *gin.Context) {
 	c.JSON(http.StatusOK, dbResult)
 }
 
-//	 logsDashboardRes
-//	@Description	Response saat get logs dashboard milik user
+//	logsDashboardRes
+//
+// @Description	Response saat get logs dashboard milik user
 type logsDashboardRes struct {
 	// data dashboard milik user (isinya uid, owner, type, id)
 	Dashboard domain.Dashboard `json:"dashboard"`
@@ -176,22 +182,24 @@ type logsDashboardRes struct {
 	LogsDashboardLink string `json:"logs_dashboard_link" example:"http://localhost:3000/d/YwXYwNAj/ywxywnaj?orgId=1&var-search_filter=&var-Levels=info&var-container_name=go_container_log2&var-Method=GET&from=1714796971638&to=1714797271638&theme=light"`
 }
 
-//	 GetUserLogsDashboard godoc
-//	@Summary		Mendapatkan Dashboard Logs containers milik User
-//	@Description	GetUserLogsDashboard
-//	@ID				logs_dashboard
-//	@Tags			monitor
-//	@Accept			json
-//	@Produce		json
-//	@Param			userID	query	string				true	"init userId milik user harusnya pake acccess token di header sih tapi karena aku masih belum tau integrate ke auth service pake ini dulu wkw"
-//	@Success		200		{object}	logsDashboardRes	"ok"
-//	@Failure		500		{object}	ResponseError		"internal server error (bug/error di kode)"
-//	@Router			/monitors/dashboards/logs [get]
+//	GetUserLogsDashboard godoc
+//
+// @Summary		Mendapatkan Dashboard Logs containers milik User
+// @Description	GetUserLogsDashboard
+// @ID				logs_dashboard
+// @Tags			monitor
+// @Accept			json
+// @Produce		json
+// @Param			userID	query	string				true	"init userId milik user harusnya pake acccess token di header sih tapi karena aku masih belum tau integrate ke auth service pake ini dulu wkw"
+// @Success		200		{object}	logsDashboardRes	"ok"
+// @Failure		500		{object}	ResponseError		"internal server error (bug/error di kode)"
+// @Router			/monitors/dashboards/logs [get]
 func (m *MonitorHandler) GetUserLogsDashboard(c *gin.Context) {
 	userID := c.Query("userID")
 	sv, err := m.service.GetLogsDashboard(c, userID)
 	if err != nil {
 		c.JSON(getStatusCode(err), ResponseError{Message: err.Error()})
+		return
 	}
 	dbResult := logsDashboardRes{
 		Dashboard:         *sv,
@@ -204,9 +212,11 @@ func (m *MonitorHandler) TesDoang(c *gin.Context) {
 	tesResult, err := m.service.TesDoang(c)
 	if err != nil {
 		c.JSON(getStatusCode(err), ResponseError{Message: err.Error()})
+		return
 	}
 	c.JSON(http.StatusOK, tesResult)
 }
+
 func getStatusCode(err error) int {
 	if err == nil {
 		return http.StatusOK

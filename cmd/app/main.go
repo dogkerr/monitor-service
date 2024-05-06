@@ -40,7 +40,6 @@ func init() {
 func main() {
 	cfg, err := config.NewConfig()
 
-	// init logger
 
 	if err != nil {
 		log.Fatalf("Config error: %s", err)

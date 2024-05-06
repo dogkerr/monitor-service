@@ -1,25 +1,26 @@
 -- CREATE EXTENSION IF NOT EXISTS 'uuid-ossp';
 CREATE TYPE container_status AS ENUM ('RUN', 'STOPPED');
 
-
 CREATE TABLE users (
     id  UUID DEFAULT gen_random_uuid() PRIMARY KEY ,
     username VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL, 
+    fullname VARCHAR(255) NOT NULL,
     password VARCHAR(255) NOT NULL
 );
+
 
 CREATE TABLE containers (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY ,
     user_id UUID NOT NULL,
-    image_url VARCHAR(255) NOT NULL,
+    image VARCHAR(255) NOT NULL,
     status container_status NOT NULL,
     name VARCHAR(255) NOT NULL,
     container_port int NOT NULL,
     public_port int,
     terminated_time timestamp with time zone ,
-    created_time timestamp with time zone  DEFAULT NOW() not null,
-    service_id VARCHAR(255)
+    created_time timestamp with time zone  DEFAULT NOW() NOT NULL,
+    service_id VARCHAR(255) NOT NULL
 );
 
 
@@ -46,8 +47,8 @@ ALTER TABLE containers ADD CONSTRAINT fk_containers_users
     REFERENCES users(id);
 
 
-INSERT INTO users( username, email, password) 
-    VALUES ('asda', 'sadasd@gmail.com', 'asdad');
+-- INSERT INTO users( username, email, fullname, password) 
+--     VALUES ('asda', 'sadasd@gmail.com', "lalala", 'asdad');
 
 /*
 9630bd22-deb5-4540-888d-475c4da371f5
