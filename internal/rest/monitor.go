@@ -40,7 +40,7 @@ func NewMonitorHandler(rg *gin.RouterGroup, svc MonitorService) {
 		h.GET("/services", middleware.AuthMiddleware(), handler.GetAllUserContainerHandler)
 		h.GET("/dashboards/monitors", middleware.AuthMiddleware(), handler.GetUserMonitorDashboard)
 		h.GET("/dashboards/logs", middleware.AuthMiddleware(), handler.GetUserLogsDashboard)
-		h.POST("/cron/usersmetrics", middleware.AuthMiddleware(), handler.CronAllUsersHandler)
+		h.POST("/cron/usersmetrics", handler.CronAllUsersHandler)
 	}
 }
 
