@@ -1,37 +1,59 @@
 
-### Cara testing
+### Cara testing rabbitmq
+
+##### setup docker
 ```
-1. buat folder pb
-2. buat .env isinya samain .env.example
-3. generate protobuf code `make proto`
-allow firewall port https://docs.docker.com/engine/swarm/swarm-tutorial/
+1.sudo nano /etc/docker/daemon.json (linux) atau ~/.docker/daemon.json kalo di macos
+isi filenya:
+
+{
+   "metrics-addr": "0.0.0.0:9323",
+   "experimental": true,
+   "log-driver": "loki",
+    "log-opts": {
+        "loki-url": "http://localhost:3100/loki/api/v1/push",
+        "loki-batch-size": "400"
+    }
+
+}
+2. sudo systemctl restart docker
+3. docker swarm init
+4. firewall allow port 9323/tcp 
+5. systemctl restart docker
 
 ```
 
 
-1. ikutin cara nyalain prometheus di readme repo dogker/configs
-2. docker compose up -d [monitor service]
-3. migrate database && insert data dummy ke masing masing table (lihat di migrations/.....up.sql)
 ```
-make migrate-up
+1. docker pull lintangbirdas/go_log:v1 
+2. docker pull lintangbirdas/monitor-service:v1
+3. buat folder pb
+4. buat .env isinya samain .env.example
+5. generate protobuf code `make proto`
+
 ```
+
+
+```
+1.allow firewall port https://docs.docker.com/engine/swarm/swarm-tutorial/
+2. docker stack ?
+
+3.  buka grafana , tambah datasource prometheus (urlnya http://prometheus:9090).
+4. buat service account & access tokennya, copy token ke .env monitor-service
 ```
 
-docker swarm init
-docker service ls
-insert service_id ke rows tabel container,
-
-masukin service accouunt acceess token Grafana ke .env monitor-service
+##### insert data ke postgres
 ```
-4.  jalanin docker swarm service
+1. make migrate-up
+
+2. insert data dummy ke masing masing table (lihat di migrations/.....up.sql)
+
 ```
- docker service create --name  go_container_4  --publish 8040:80 --replicas 3 --container-label  user_id=<user_id_di_table_container>     configs-go_container_log_user1:latest
-
-
-  docker service create --name  go_container_user2  --publish 8032:80 --replicas 1 --container-label  user_id=<user_id_di_table_container>    configs-go_container_log_user1:latest
 
 
 
+##### jalanin docker swarm service
+```
 docker service create --name  go_container_log1  --publish 8231:8231 --replicas 2 --container-label  user_id=<user_id_di_table_container> --log-driver=loki \
     --log-opt loki-url="http://localhost:3100/loki/api/v1/push" \
     --log-opt loki-retries=5 \
@@ -46,54 +68,29 @@ docker service create --name  go_container_log2  --publish 8232:8232 --replicas 
     --log-opt loki-external-labels="job=docker,container_name=go_container_log2,userId=<user_id_di_table_container>" configs-go_container_log_user2:latest 
 
 
-## contoh:
-docker service create --name  go_container_log2  --publish 8038:80 --replicas 2 --container-label  user_id=eff92b7f-3f90-405b-9fb8-1ff12eb72431 --log-driver=loki \
-    --log-opt loki-url="http://localhost:3100/loki/api/v1/push" \
-    --log-opt loki-retries=5 \
-    --log-opt loki-batch-size=400 \
-    --log-opt loki-external-labels="job=docker,container_name=go_container_api_user2,userId=eff92b7f-3f90-405b-9fb8-1ff12eb72431" configs-go_container_log_user1:latest 
-
-
-
 
 # harus localhost:3100/loki/api/v1/push biar bisa kedetect loki (pake loki:3100 gakbisa)
-
-
-docker service create --name  go_container_log2  --publish 8037:80 --replicas 1 --container-label  user_id=<user_id_di_table_container>    configs-go_container_log_user1:latest 
-
 ```
 
 
-4. tambahin serviceID docker swarm ke setiap row di tabel container (harusnya container service yg namabahin)
+##### insert serviceID docker swarm ke setiap row
+ tambahin serviceID docker swarm ke setiap row di tabel container (harusnya container service yg namabahin)
 ```
 buat dapetin serviceId: `docker service ls`
 paling kiri id service ny.
 ```
 
-
-<!-- 6. go run app/main.go -->
-7. jalanin client & kirim request ke
-```
-http://localhost:5033/api/v1/monitors/metrics?userId=<user_id_di_database>
-http://localhost:5033/api/v1/monitors/ctrMetrics?userId=<user_id_di_database>&serviceId=<docker_swarm_serviceId>
-
-
-```
-
-
+###### rabbitmq
 8. bikin queue  & binding queuee
-
 ```
-
 1. nama queue=monitor-billing, type: Quorum
 2. queue binding utk monitor-billing:
 exchangeName: monitor-billing
 routingkey: monitor.billing.all_users
 nama queue: monitor-billing
-
-
 ```
 
+##### cron job dkron
 9. buat cron di dkron
 ```
 curl localhost:9911/v1/jobs -XPOST -d @scheduled_metrics_jobs.json
@@ -101,6 +98,8 @@ curl localhost:9911/v1/jobs -XPOST -d @scheduled_metrics_jobs.json
 
 
 
+
+### yang bawah ini gak usah dibaca & gak usah diikutin
 
 ### query prome
 ```

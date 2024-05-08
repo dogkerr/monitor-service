@@ -29,7 +29,7 @@ option go_package = "dogker/lintang/monitor-service/pb";
 
 enum ContainerStatus {
 	RUN = 0;
-	STOPPED = 1;
+	STOP = 1;
 }
 
 

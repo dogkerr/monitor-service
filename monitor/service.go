@@ -118,10 +118,19 @@ func (m *Service) SendAllUsersMetricsToRMQ(ctx context.Context) error {
 			// set metrics container for all usersemua
 			ctr := *userContainers
 
-			ctrMetrics, err := m.promeAPI.GetMetricsByServiceIDNotGRPC(ctx, ctr[i].ServiceID, time.Now().Add(-30*time.Minute))
+			var ctrMetrics *domain.Metric
+			ctrMetrics, err = m.promeAPI.GetMetricsByServiceIDNotGRPC(ctx, ctr[i].ServiceID, time.Now().Add(-30*time.Minute))
+			
 			if err != nil {
 				zap.L().Error("server.prome.GetMetricsByServiceId", zap.Error(err))
 				return err
+			}
+			if ctrMetrics.CpuUsage == 0 {
+				ctrMetrics, err = m.containerRepo.GetSpecificConatainerMetrics(ctx, ctr[i].ServiceID)
+				if err != nil {
+					zap.L().Error("m.containerRepo.GetSpecificConatainerMetrics", zap.Error(err))
+					return err
+				}
 			}
 			allUsersMetrics = append(allUsersMetrics, domain.UserMetricsMessage{
 				ContainerID:         ctr[i].ID.String(),

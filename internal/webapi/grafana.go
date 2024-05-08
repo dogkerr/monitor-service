@@ -27,7 +27,7 @@ func NewGrafanaAPI(cfg *config.Config) *GrafanaAPI {
 		Host:      cfg.Grafana.URLGrafana,
 		BasePath:  "/api",
 		Schemes:   []string{"http"},
-		APIKey:    cfg.Grafana.Apikey,
+		APIKey:    os.Getenv("GRAFANA_APIKEY"),
 		OrgID:     1,
 		BasicAuth: url.UserPassword("admin", "password"),
 	}
@@ -194,14 +194,19 @@ func (g *GrafanaAPI) CreateLogsDashboard(ctx context.Context, userID string) (*d
 		zap.L().Debug("json.Unmarshal") // jangan di return karena emang banyak field json yang ga sesuai struct, tapi tetep bisa generate dashboard
 	}
 
-	for _, panel := range grafanaConfig.Dashboard.Panels {
+	for i, panel := range grafanaConfig.Dashboard.Panels {
 		panel.Targets[0].Datasource.UID = datasourceID
+		grafanaConfig.Dashboard.Panels[i].Targets[0].Datasource.UID = datasourceID
 	}
 	grafanaConfig.Dashboard.Panels[0].Datasource.UID = datasourceID
 	grafanaConfig.Dashboard.Panels[1].Datasource.UID = datasourceID
 
-	list := grafanaConfig.Dashboard.Templating.List
-	list[2].Datasource.UID = datasourceID
+	for i, templateList := range grafanaConfig.Dashboard.Templating.List {
+		templateList.Datasource.UID = datasourceID
+		templateList.Datasource.Type = "loki"
+		grafanaConfig.Dashboard.Templating.List[i] = templateList // harus diupdate karena templatelist itu variaabel di alamat memory baru
+	}
+
 	// var queryNameloki interface{} = lokiQueryVariable{
 	// 	label: "container_name",
 	// 	refId: "LokiVariableQueryEditor-VariableQuery",
@@ -210,14 +215,14 @@ func (g *GrafanaAPI) CreateLogsDashboard(ctx context.Context, userID string) (*d
 	// }
 
 	// list[2].Query = queryNameloki.(lokiQueryVariable)
-	list[2].Query = lokiQueryVariable{
-		Label:  "container_name",
+	grafanaConfig.Dashboard.Templating.List[0].Query = lokiQueryVariable{
+		Label:  "swarm_service",
 		RefID:  "LokiVariableQueryEditor-VariableQuery",
 		Stream: "{userId=\"" + userID + "\"}",
 		Tipe:   1,
 	} // bug disni gak ketulis ke dashboardnya
 
-	list[2].Datasource.UID = datasourceID
+	grafanaConfig.Dashboard.Templating.List[2].Datasource.UID = datasourceID
 
 	grafanaConfig.Dashboard.Time.From = "now-5d"
 

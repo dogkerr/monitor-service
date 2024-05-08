@@ -14,5 +14,5 @@ type ContainerLifecycle struct {
 	CPUCore     float64   `json:"cpu_core"`
 	MemCapacity float64   `json:"mem_capacity"`
 	Replica     uint64    `json:"replica"`
-	Status      Status    `json:"status"`
+	Status      ContainerStatus    `json:"status"`
 }

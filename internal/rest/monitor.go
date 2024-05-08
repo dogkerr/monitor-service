@@ -3,12 +3,14 @@ package rest
 import (
 	"context"
 	"dogker/lintang/monitor-service/domain"
+	"dogker/lintang/monitor-service/internal/rest/middleware"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 )
 
 // ResponseError represent the response error struct
@@ -34,11 +36,11 @@ func NewMonitorHandler(rg *gin.RouterGroup, svc MonitorService) {
 	}
 	h := rg.Group("/monitors")
 	{
-		h.GET("/tes", handler.TesDoang)
-		h.GET("/services", handler.GetAllUserContainerHandler)
-		h.GET("/dashboards/monitors", handler.GetUserMonitorDashboard)
-		h.GET("/dashboards/logs", handler.GetUserLogsDashboard)
-		h.POST("/cron/usersmetrics", handler.CronAllUsersHandler)
+		h.GET("/tes", middleware.AuthMiddleware(), handler.TesDoang)
+		h.GET("/services", middleware.AuthMiddleware(), handler.GetAllUserContainerHandler)
+		h.GET("/dashboards/monitors", middleware.AuthMiddleware(), handler.GetUserMonitorDashboard)
+		h.GET("/dashboards/logs", middleware.AuthMiddleware(), handler.GetUserLogsDashboard)
+		h.POST("/cron/usersmetrics", middleware.AuthMiddleware(), handler.CronAllUsersHandler)
 	}
 }
 
@@ -103,7 +105,7 @@ func (m *MonitorHandler) GetAllUserContainerHandler(c *gin.Context) {
 		res = append(res, serviceResponse{
 			ID:                  s[i].ID,
 			UserID:              s[i].UserID,
-			ImageURL:            s[i].ImageURL,
+			ImageURL:            s[i].Image,
 			Status:              s[i].Status.String(),
 			Name:                s[i].Name,
 			ContainerPort:       s[i].ContainerPort,
@@ -147,27 +149,28 @@ type dashboardRes struct {
 // @Tags			monitor
 // @Accept			json
 // @Produce		json
-// @Param			userID	query	string			true	"init userId milik user harusnya pake acccess token di header sih tapi karena aku masih belum tau integrate ke auth service pake ini dulu wkw"
 // @Success		200		{object}	dashboardRes	"ok"
 // @Failure		500		{object}	ResponseError	"internal server error (bug/error di kode)"
 // @Router			/monitors/dashboards/monitors [get]
 func (m *MonitorHandler) GetUserMonitorDashboard(c *gin.Context) {
-	userID := c.Query("userID")
-	sv, err := m.service.GetUserMonitorDashboard(c, userID)
+	// userID := c.Query("userID")
+	userID, _ := c.Get("userID")
+	zap.L().Debug("userID monitor", zap.String("userID", userID.(string)))
+	sv, err := m.service.GetUserMonitorDashboard(c, userID.(string))
 	if err != nil {
 		c.JSON(getStatusCode(err), ResponseError{Message: err.Error()})
 		return
 	}
 	dbResult := dashboardRes{
 		Dashboard:               *sv,
-		ReceivedNetworkLink:     "http://127.0.0.1/d-solo/" + sv.Uid + "/" + strings.ToLower(sv.Uid) + "?orgId=1&refresh=5s&from=now-5m&theme=light&to=now&panelId=8",
-		SendNetworkLink:         "http://127.0.0.1/d-solo/" + sv.Uid + "/" + strings.ToLower(sv.Uid) + "?orgId=1&refresh=5s&from=now-5m&theme=light&to=now&panelId=9",
-		CpuUsagePerContainer:    "http://127.0.0.1/d-solo/" + sv.Uid + "/" + strings.ToLower(sv.Uid) + "?orgId=1&refresh=5s&from=now-5m&theme=light&to=now&panelId=1",
-		MemorySwapPerContainer:  "http://127.0.0.1/d-solo/" + sv.Uid + "/" + strings.ToLower(sv.Uid) + "?orgId=1&refresh=5s&from=now-5m&theme=light&to=now&panelId=34",
-		MemoryUsagePerContainer: "http://127.0.0.1/d-solo/" + sv.Uid + "/" + strings.ToLower(sv.Uid) + "?orgId=1&refresh=5s&from=now-5m&theme=light&to=now&panelId=10",
-		MemoryUsageNotGraph:     "http://127.0.0.1/d-solo/" + sv.Uid + "/" + strings.ToLower(sv.Uid) + "?orgId=1&refresh=5s&from=now-5m&theme=light&to=now&panelId=37",
-		OveralCpuUsage:          "http://127.0.0.1/d-solo/" + sv.Uid + "/" + strings.ToLower(sv.Uid) + "?orgId=1&refresh=5s&from=now-5m&theme=light&to=now&panelId=5",
-		TotalContainer:          "http://127.0.0.1/d-solo/" + sv.Uid + "/" + strings.ToLower(sv.Uid) + "?orgId=1&refresh=5s&from=now-5m&theme=light&to=now&panelId=31",
+		ReceivedNetworkLink:     "http://127.0.0.1:3000/d-solo/" + sv.Uid + "/" + strings.ToLower(sv.Uid) + "?orgId=1&refresh=5s&from=now-5m&theme=light&to=now&panelId=8",
+		SendNetworkLink:         "http://127.0.0.1:3000/d-solo/" + sv.Uid + "/" + strings.ToLower(sv.Uid) + "?orgId=1&refresh=5s&from=now-5m&theme=light&to=now&panelId=9",
+		CpuUsagePerContainer:    "http://127.0.0.1:3000/d-solo/" + sv.Uid + "/" + strings.ToLower(sv.Uid) + "?orgId=1&refresh=5s&from=now-5m&theme=light&to=now&panelId=1",
+		MemorySwapPerContainer:  "http://127.0.0.1:3000/d-solo/" + sv.Uid + "/" + strings.ToLower(sv.Uid) + "?orgId=1&refresh=5s&from=now-5m&theme=light&to=now&panelId=34",
+		MemoryUsagePerContainer: "http://127.0.0.1:3000/d-solo/" + sv.Uid + "/" + strings.ToLower(sv.Uid) + "?orgId=1&refresh=5s&from=now-5m&theme=light&to=now&panelId=10",
+		MemoryUsageNotGraph:     "http://127.0.0.1:3000/d-solo/" + sv.Uid + "/" + strings.ToLower(sv.Uid) + "?orgId=1&refresh=5s&from=now-5m&theme=light&to=now&panelId=37",
+		OveralCpuUsage:          "http://127.0.0.1:3000/d-solo/" + sv.Uid + "/" + strings.ToLower(sv.Uid) + "?orgId=1&refresh=5s&from=now-5m&theme=light&to=now&panelId=5",
+		TotalContainer:          "http://127.0.0.1:3000/d-solo/" + sv.Uid + "/" + strings.ToLower(sv.Uid) + "?orgId=1&refresh=5s&from=now-5m&theme=light&to=now&panelId=31",
 	}
 	c.JSON(http.StatusOK, dbResult)
 }
@@ -190,20 +193,21 @@ type logsDashboardRes struct {
 // @Tags			monitor
 // @Accept			json
 // @Produce		json
-// @Param			userID	query	string				true	"init userId milik user harusnya pake acccess token di header sih tapi karena aku masih belum tau integrate ke auth service pake ini dulu wkw"
 // @Success		200		{object}	logsDashboardRes	"ok"
 // @Failure		500		{object}	ResponseError		"internal server error (bug/error di kode)"
 // @Router			/monitors/dashboards/logs [get]
 func (m *MonitorHandler) GetUserLogsDashboard(c *gin.Context) {
-	userID := c.Query("userID")
-	sv, err := m.service.GetLogsDashboard(c, userID)
+	// userID := c.Query("userID")
+	userID, _ := c.Get("userID")
+	zap.L().Debug("userID logs", zap.String("userID", userID.(string)))
+	sv, err := m.service.GetLogsDashboard(c, userID.(string))
 	if err != nil {
 		c.JSON(getStatusCode(err), ResponseError{Message: err.Error()})
 		return
 	}
 	dbResult := logsDashboardRes{
 		Dashboard:         *sv,
-		LogsDashboardLink: "http://localhost:3000/d/" + sv.Uid + "/" + strings.ToLower(sv.Uid) + "?orgId=1&var-search_filter=&var-Levels=info&var-container_name=go_container_log2&var-Method=GET&from=1714796971638&to=1714797271638&theme=light",
+		LogsDashboardLink: "http://localhost:3000/d/" + sv.Uid + "/" + strings.ToLower(sv.Uid) + "?orgId=1&theme=light",
 	}
 	c.JSON(http.StatusOK, dbResult)
 }

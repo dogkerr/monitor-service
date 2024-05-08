@@ -3,7 +3,7 @@
 .vscode
 
 # Config
-.env
+#.env
 config/.env
 
 # Binaries for programs and plugins

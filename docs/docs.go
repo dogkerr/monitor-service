@@ -32,15 +32,6 @@ const docTemplate = `{
                 ],
                 "summary": "Mendapatkan Dashboard Logs containers milik User",
                 "operationId": "logs_dashboard",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "init userId milik user harusnya pake acccess token di header sih tapi karena aku masih belum tau integrate ke auth service pake ini dulu wkw",
-                        "name": "userID",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
                 "responses": {
                     "200": {
                         "description": "ok",
@@ -71,15 +62,6 @@ const docTemplate = `{
                 ],
                 "summary": "Mendapatkan Dashboard Container metrics milik User",
                 "operationId": "monitor_dashboard",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "init userId milik user harusnya pake acccess token di header sih tapi karena aku masih belum tau integrate ke auth service pake ini dulu wkw",
-                        "name": "userID",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
                 "responses": {
                     "200": {
                         "description": "ok",

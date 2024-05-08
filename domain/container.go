@@ -6,22 +6,29 @@ import (
 	"github.com/google/uuid"
 )
 
-type Status int
+type ContainerStatus int
 
 const (
-	RUN Status = iota + 1
-	STOPPED
+	RUN ContainerStatus = iota + 1
+	STOP
 )
 
-func (s Status) String() string {
-	return [...]string{"RUN", "STOPPED"}[s-1]
+func (s ContainerStatus) String() string {
+	return [...]string{"RUN", "STOP"}[s-1]
 }
+
+// type ContainerStatus string
+
+// const (
+// 	RUN  ContainerStatus = "RUN"
+// 	STOP ContainerStatus = "STOP"
+// )
 
 type Container struct {
 	ID                  uuid.UUID            `json:"id"`
 	UserID              uuid.UUID            `json:"user_id"`
-	ImageURL            string               `json:"image_url"`
-	Status              Status               `json:"status"`
+	Image               string               `json:"image_url"`
+	Status              ContainerStatus      `json:"status"`
 	Name                string               `json:"name"`
 	ContainerPort       int                  `json:"container_port"`
 	PublicPort          int                  `json:"public_port"`

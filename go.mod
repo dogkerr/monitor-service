@@ -5,6 +5,8 @@ go 1.22.1
 require (
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-openapi/strfmt v0.23.0
+	github.com/gofrs/uuid v4.4.0+incompatible
+	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/google/uuid v1.6.0
 	github.com/google/wire v0.6.0
 	github.com/grafana/grafana-openapi-client-go v0.0.0-20240325012504-4958bdd139e7
@@ -32,7 +34,6 @@ require (
 	github.com/bytedance/sonic v1.11.6 // indirect
 	github.com/bytedance/sonic/loader v0.1.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
-	github.com/chenzhuoyu/base64x v0.0.0-20230717121745-296ad89f973d // indirect
 	github.com/cloudwego/base64x v0.1.4 // indirect
 	github.com/cloudwego/iasm v0.2.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect

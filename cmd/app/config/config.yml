@@ -1,0 +1,40 @@
+# app:
+#   name: 'go-monitor-api'
+#   version: '1.0.0'
+
+# http:
+#   port: '8080'
+
+# logger:
+#   level: 'debug'
+#   filename: 'go-monitor-api'
+#   max_age: 30
+#   max_backups: 5
+
+# # postgres:
+# #   pool_max: 2
+# #   username: postgres
+# #   password: pass
+
+
+
+# # redis:
+# #   server_address: ':6379'
+# #   host: chat-redispkg #gak guna
+# #   address: 6379 #gak guna
+# #   password: passwordRedis #gak guna
+
+# # prometheus:
+# #   urlProme: http://localhost:9090  # http://prometheus pas udah dideploy ke compose
+# #   # 
+
+
+# # grafana: 
+# #   apiKey: glsa_DMAkN4vQhwJWy1gvwOtjyUBbzla2smAq_6274bda3
+# #   urlGrafana: localhost:3000
+
+# # grpc:
+# #   urlGRPC: 0.0.0.0:5001
+
+# # rabbitmq: 
+# #   rmqAddress: amqp://guest:guest@localhost:5672/

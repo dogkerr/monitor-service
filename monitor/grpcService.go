@@ -17,12 +17,13 @@ import (
 type PrometheusAPI interface {
 	GetUserContainerResourceUsageRequest(ctx context.Context, userID string, fromTimeIn *timestamppb.Timestamp) (*domain.Prometheus, error)
 	GetMetricsByServiceID(ctx context.Context, serviceID string, fromTimeIn *timestamppb.Timestamp) (*domain.Metric, error)
-	GetMetricsByServiceIDNotGRPC(ctx context.Context, serviceID string, fromTimeIn time.Time) (*domain.Metric, error) 
+	GetMetricsByServiceIDNotGRPC(ctx context.Context, serviceID string, fromTimeIn time.Time) (*domain.Metric, error)
 }
 
 type ContainerRepository interface {
 	Get(ctx context.Context, serviceID string) (*domain.Container, error)
 	GetAllUserContainer(ctx context.Context, userID string) (*[]domain.Container, error)
+	GetSpecificConatainerMetrics(ctx context.Context, ctrID string) (*domain.Metric, error)
 }
 
 type MonitorServerImpl struct {
@@ -80,7 +81,7 @@ func (server *MonitorServerImpl) GetAllUserContainerResourceUsage(
 
 		usersContainer = append(usersContainer, &pb.Container{
 			Id:                     ctr[i].ID.String(),
-			ImageUrl:               ctr[i].ImageURL,
+			ImageUrl:               ctr[i].Image,
 			Status:                 pb.ContainerStatus(ctr[i].Status),
 			Name:                   ctr[i].Name,
 			ContainerPort:          uint64(ctr[i].ContainerPort),
@@ -148,7 +149,7 @@ func (server *MonitorServerImpl) GetSpecificContainerResourceUsage(
 		CurrentTime: timestamppb.New(time.Now()),
 		UserContainer: &pb.Container{
 			Id:                     ctr.ID.String(),
-			ImageUrl:               ctr.ImageURL,
+			ImageUrl:               ctr.Image,
 			Status:                 pb.ContainerStatus(ctr.Status),
 			Name:                   ctr.Name,
 			ContainerPort:          uint64(ctr.ContainerPort),

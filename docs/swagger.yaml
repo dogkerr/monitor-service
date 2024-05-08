@@ -82,14 +82,6 @@ paths:
       - application/json
       description: GetUserLogsDashboard
       operationId: logs_dashboard
-      parameters:
-      - description: init userId milik user harusnya pake acccess token di header
-          sih tapi karena aku masih belum tau integrate ke auth service pake ini dulu
-          wkw
-        in: query
-        name: userID
-        required: true
-        type: string
       produces:
       - application/json
       responses:
@@ -110,14 +102,6 @@ paths:
       - application/json
       description: GetUserMonitorDashboard
       operationId: monitor_dashboard
-      parameters:
-      - description: init userId milik user harusnya pake acccess token di header
-          sih tapi karena aku masih belum tau integrate ke auth service pake ini dulu
-          wkw
-        in: query
-        name: userID
-        required: true
-        type: string
       produces:
       - application/json
       responses:
