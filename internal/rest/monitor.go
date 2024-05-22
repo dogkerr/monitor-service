@@ -24,6 +24,7 @@ type MonitorService interface {
 	GetUserMonitorDashboard(ctx context.Context, userID string) (*domain.Dashboard, error)
 	GetLogsDashboard(ctx context.Context, userID string) (*domain.Dashboard, error)
 	SendAllUsersMetricsToRMQ(ctx context.Context) error
+	SendTerminatedInstanceToContainerService(ctx context.Context) error
 }
 
 type MonitorHandler struct {
@@ -41,6 +42,9 @@ func NewMonitorHandler(rg *gin.RouterGroup, svc MonitorService) {
 		h.GET("/dashboards/monitors", middleware.AuthMiddleware(), handler.GetUserMonitorDashboard)
 		h.GET("/dashboards/logs", middleware.AuthMiddleware(), handler.GetUserLogsDashboard)
 		h.POST("/cron/usersmetrics", handler.CronAllUsersHandler)
+		h.POST("/cron/terminatedAccidentally", handler.ContainerTerminatedAccidentally)
+		h.GET("/")
+
 	}
 }
 
@@ -219,6 +223,19 @@ func (m *MonitorHandler) TesDoang(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, tesResult)
+}
+
+type CronTerminatedInstanceResp struct {
+	Message string `json:"message"`
+}
+
+func (m *MonitorHandler) ContainerTerminatedAccidentally(c *gin.Context) {
+	err := m.service.SendTerminatedInstanceToContainerService(c)
+	if err != nil {
+		c.JSON(getStatusCode(err), ResponseError{Message: err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, CronTerminatedInstanceResp{"ok"})
 }
 
 func getStatusCode(err error) int {

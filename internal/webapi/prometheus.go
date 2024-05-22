@@ -204,6 +204,49 @@ func (p *PrometheusAPI) GetMetricsByServiceID(ctx context.Context, serviceID str
 	return &metric, nil
 }
 
+func (p *PrometheusAPI) GetTerminatedContainers(ctx context.Context) ([]string, error) {
+	promeAPI := v1.NewAPI(*p.client)
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	r := v1.Range{
+		Start: time.Now().AddDate(0, 0, -2),
+		End:   time.Now(),
+		Step:  time.Hour,
+	}
+
+	terminatedInstancesProme, warnings, err := promeAPI.QueryRange(ctx, "count(time()  - container_last_seen{ container_label_com_docker_compose_service=~\".+\"} > 10) by (container_label_com_docker_swarm_service_id, container_label_com_docker_swarm_service_name,  container_label_user_id)", r, v1.WithTimeout(5*time.Second))
+	if err != nil {
+		zap.L().Error("Gagal mendapatkan Terminated Instace", zap.Error(err))
+		return nil, domain.WrapErrorf(err, domain.ErrInternalServerError, "Gagal mendapatkan Terminated Instace")
+	}
+
+	if len(warnings) > 0 {
+		zap.L().Warn("Warnings: pas query CPU Usage\n")
+	}
+
+	var terminatedInsatances []string
+	// counter, ok := terminatedInstancesProme.(*model.Matrix)
+
+	vector, ok := terminatedInstancesProme.(model.Matrix) // bukan vector udah pernah coba salah
+	if !ok {
+		zap.L().Error(fmt.Sprintf("result.(model.Vector) , got: %T", terminatedInstancesProme), zap.String("vector", terminatedInstancesProme.String()))
+		return nil, domain.WrapErrorf(err, domain.ErrInternalServerError, domain.MessageInternalServerError)
+	}
+
+	for i, _ := range vector {
+		serviceID := vector[i].Metric["container_label_com_docker_swarm_service_id"]
+		terminatedInsatances = append(terminatedInsatances, string(serviceID))
+		zap.L().Info(fmt.Sprintf(`serviceID: %s`, string(serviceID)))
+		for keyMetric, value := range vector[i].Metric {
+			zap.L().Info(fmt.Sprintf(`metrics: %s,  value:  %s`, keyMetric, value))
+		}
+		
+	}
+
+	return terminatedInsatances, nil
+}
+
 /*
 Desc: mendapatkan metrics untuk container dg serviceID tertentu, tapi buat non grpc service
 */

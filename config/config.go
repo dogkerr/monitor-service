@@ -66,6 +66,7 @@ type (
 
 	GRPC struct {
 		URLGrpc string `json:"urlGRPC" yaml:"urlGRPC" env:"URL_GRPC"`
+		ContainerURL string `json:"container_URL" env:"CONTAINER_URL"`
 	}
 
 	RabbitMQ struct {
@@ -80,7 +81,14 @@ func NewConfig() (*Config, error) {
 	if err != nil {
 		log.Println(err)
 	}
-	err = cleanenv.ReadConfig(path+".env", cfg) // buat di doker , ../.env kalo debug (.env kalo docker)
+
+	if os.Getenv("APP_ENV") == "local" {
+		err = cleanenv.ReadConfig(path+"/local.env", cfg) // buat di doker , ../.env kalo debug (.env kalo docker)
+
+	} else {
+		err = cleanenv.ReadConfig(path+".env", cfg) // buat di doker , ../.env kalo debug (.env kalo docker)
+
+	}
 	// err = cleanenv.ReadConfig(path+"/local.env", cfg) // local run
 
 	if err != nil {

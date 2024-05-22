@@ -18,6 +18,7 @@ type PrometheusAPI interface {
 	GetUserContainerResourceUsageRequest(ctx context.Context, userID string, fromTimeIn *timestamppb.Timestamp) (*domain.Prometheus, error)
 	GetMetricsByServiceID(ctx context.Context, serviceID string, fromTimeIn *timestamppb.Timestamp) (*domain.Metric, error)
 	GetMetricsByServiceIDNotGRPC(ctx context.Context, serviceID string, fromTimeIn time.Time) (*domain.Metric, error)
+	GetTerminatedContainers(ctx context.Context) ([]string, error)
 }
 
 type ContainerRepository interface {

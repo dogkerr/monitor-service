@@ -27,6 +27,10 @@ type MonitorMQ interface {
 	SendAllUserMetrics(ctx context.Context, usersAllMetrics []domain.UserMetricsMessage) error
 }
 
+type ContainerServiceClient interface {
+	SendTerminatedContainerToCtrService(ctx context.Context, terminatedInstances []string) error
+}
+
 type Service struct {
 	containerRepo ContainerRepository
 	grafanaClient GrafanaAPI
@@ -34,10 +38,11 @@ type Service struct {
 	userRepo      UserRepository
 	promeAPI      PrometheusAPI
 	monitorMQ     MonitorMQ
+	ctrClient ContainerServiceClient
 }
 
 func NewService(c ContainerRepository, grf GrafanaAPI, db DashboardRepository, userDb UserRepository, prome PrometheusAPI,
-	mtqMq MonitorMQ) *Service {
+	mtqMq MonitorMQ, ctrClient ContainerServiceClient) *Service {
 	return &Service{
 		containerRepo: c,
 		grafanaClient: grf,
@@ -45,6 +50,7 @@ func NewService(c ContainerRepository, grf GrafanaAPI, db DashboardRepository, u
 		userRepo:      userDb,
 		promeAPI:      prome,
 		monitorMQ:     mtqMq,
+		ctrClient: ctrClient,
 	}
 }
 
@@ -119,19 +125,25 @@ func (m *Service) SendAllUsersMetricsToRMQ(ctx context.Context) error {
 			ctr := *userContainers
 
 			var ctrMetrics *domain.Metric
+			// get metrics dari prometehus
 			ctrMetrics, err = m.promeAPI.GetMetricsByServiceIDNotGRPC(ctx, ctr[i].ServiceID, time.Now().Add(-30*time.Minute))
-			
+
 			if err != nil {
 				zap.L().Error("server.prome.GetMetricsByServiceId", zap.Error(err))
 				return err
 			}
+
 			if ctrMetrics.CpuUsage == 0 {
-				ctrMetrics, err = m.containerRepo.GetSpecificConatainerMetrics(ctx, ctr[i].ServiceID)
+				// kalo metrics cpu prometheus gak ada berarti containernya udah pernah diterminate, dan harus ambil metrics dari postgres
+				// tapi ini swarm servicenya harus dihapus lewat endpoint kalo gak lewat endpoint nanti error karena di tabel container-metrics belum ada rownya
+
+				ctrMetrics, err = m.containerRepo.GetSpecificConatainerMetrics(ctx, ctr[i].ID.String())
 				if err != nil {
 					zap.L().Error("m.containerRepo.GetSpecificConatainerMetrics", zap.Error(err))
 					return err
 				}
 			}
+
 			allUsersMetrics = append(allUsersMetrics, domain.UserMetricsMessage{
 				ContainerID:         ctr[i].ID.String(),
 				UserID:              user.ID.String(),
@@ -149,6 +161,20 @@ func (m *Service) SendAllUsersMetricsToRMQ(ctx context.Context) error {
 		return err
 	}
 	return nil
+}
+
+func (m *Service) SendTerminatedInstanceToContainerService(ctx context.Context) error {
+	deadSvc, err := m.promeAPI.GetTerminatedContainers(ctx)
+	if err != nil {
+		zap.L().Error(" m.promeAPI.GetTerminatedContainers(ctx) (SendTerminatedInstanceToContainerService) (MonoitorService)", zap.Error(err))
+		return err
+	}
+
+	err = m.ctrClient.SendTerminatedContainerToCtrService(ctx, deadSvc)
+	if err != nil {
+		return  err 
+	}
+	return nil 
 }
 
 // buat testing daong

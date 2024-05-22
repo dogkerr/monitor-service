@@ -170,15 +170,53 @@ func (r *ContainerRepository) GetSpecificConatainerMetrics(ctx context.Context, 
 		return nil, err
 	}
 
-	metr, err := q.GetSpecificContainerMetrics(ctx, uuid.UUID(ctrUUID))
+	metrics, err := q.GetSpecificContainerMetrics(ctx, uuid.UUID(ctrUUID))
 	if err != nil {
 		zap.L().Error("GetSpecificContainerMetrics", zap.Error(err), zap.String("ctrID", ctrID))
 		return nil, err
 	}
+
+	// var metr domain.Metric
+	metr := qSortWaktu(metrics) // get last all user container metrics (berdasarkan last date)
+
 	return &domain.Metric{
 		CpuUsage:            float32(metr.Cpus),
 		MemoryUsage:         float32(metr.Memory),
 		NetworkIngressUsage: float32(metr.NetworkIngress),
 		NetworkEgressUsage:  float32(metr.NetworkEgress),
 	}, nil
+}
+
+func qSortWaktu(arr []queries.GetSpecificContainerMetricsRow) queries.GetSpecificContainerMetricsRow {
+
+	var recurse func(left int, right int)
+	var partition func(left int, right int, pivot int) int
+
+	partition = func(left int, right int, pivot int) int {
+		v := arr[pivot]
+		right--
+		arr[pivot], arr[right] = arr[right], arr[pivot]
+
+		for i := left; i < right; i++ {
+			if arr[i].CreatedTime.Unix() <= v.CreatedTime.Unix() {
+				arr[i], arr[left] = arr[left], arr[i]
+				left++
+			}
+		}
+
+		arr[left], arr[right] = arr[right], arr[left]
+		return left
+	}
+
+	recurse = func(left int, right int) {
+		if left < right {
+			pivot := (right + left) / 2
+			pivot = partition(left, right, pivot)
+			recurse(left, pivot)
+			recurse(pivot+1, right)
+		}
+	}
+
+	recurse(0, len(arr))
+	return arr[len(arr)-1]
 }

@@ -205,8 +205,8 @@ func (q *Queries) GetContainer(ctx context.Context, serviceID string) ([]GetCont
 	return items, nil
 }
 
-const getSpecificContainerMetrics = `-- name: GetSpecificContainerMetrics :one
-SELECT m.id, m.cpus, m.memory, m.network_ingress, m.network_egress
+const getSpecificContainerMetrics = `-- name: GetSpecificContainerMetrics :many
+SELECT m.id, m.cpus, m.memory, m.network_ingress, m.network_egress, m.created_time
 	FROM container_metrics m 
 	WHERE m.container_id=$1
 `
@@ -217,17 +217,35 @@ type GetSpecificContainerMetricsRow struct {
 	Memory         float64
 	NetworkIngress float64
 	NetworkEgress  float64
+	CreatedTime    time.Time
 }
 
-func (q *Queries) GetSpecificContainerMetrics(ctx context.Context, containerID uuid.UUID) (GetSpecificContainerMetricsRow, error) {
-	row := q.db.QueryRowContext(ctx, getSpecificContainerMetrics, containerID)
-	var i GetSpecificContainerMetricsRow
-	err := row.Scan(
-		&i.ID,
-		&i.Cpus,
-		&i.Memory,
-		&i.NetworkIngress,
-		&i.NetworkEgress,
-	)
-	return i, err
+func (q *Queries) GetSpecificContainerMetrics(ctx context.Context, containerID uuid.UUID) ([]GetSpecificContainerMetricsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getSpecificContainerMetrics, containerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetSpecificContainerMetricsRow
+	for rows.Next() {
+		var i GetSpecificContainerMetricsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Cpus,
+			&i.Memory,
+			&i.NetworkIngress,
+			&i.NetworkEgress,
+			&i.CreatedTime,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

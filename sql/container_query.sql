@@ -6,8 +6,8 @@ SELECT c.id, c.user_id, c.image, c.status, c.name, c.container_port, c.public_po
 
 
 
--- name: GetSpecificContainerMetrics :one
-SELECT m.id, m.cpus, m.memory, m.network_ingress, m.network_egress
+-- name: GetSpecificContainerMetrics :many
+SELECT m.id, m.cpus, m.memory, m.network_ingress, m.network_egress, m.created_time
 	FROM container_metrics m 
 	WHERE m.container_id=$1;
 
