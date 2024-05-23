@@ -25,6 +25,7 @@ type MonitorService interface {
 	GetLogsDashboard(ctx context.Context, userID string) (*domain.Dashboard, error)
 	SendAllUsersMetricsToRMQ(ctx context.Context) error
 	SendTerminatedInstanceToContainerService(ctx context.Context) error
+	AuthorizeGrafanaDashboardAccess(ctx context.Context, ctrID string, userID string) error
 }
 
 type MonitorHandler struct {
@@ -44,6 +45,7 @@ func NewMonitorHandler(rg *gin.RouterGroup, svc MonitorService) {
 		h.POST("/cron/usersmetrics", handler.CronAllUsersHandler)
 		h.POST("/cron/terminatedAccidentally", handler.ContainerTerminatedAccidentally)
 		h.GET("/")
+		h.POST("/grafana/auth", handler.AuthGrafana)
 
 	}
 }
@@ -236,6 +238,31 @@ func (m *MonitorHandler) ContainerTerminatedAccidentally(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, CronTerminatedInstanceResp{"ok"})
+}
+
+type grafanaAuthReq struct {
+	DashboardID string `form:"dashboard_id"`
+}
+
+type grafanaAuthRes struct {
+	Message string `json:"message"`
+}
+
+func (m *MonitorHandler) AuthGrafana(c *gin.Context) {
+	userID, _ := c.Get("userID")
+	var req grafanaAuthReq
+	if err := c.ShouldBindQuery(&req); err != nil {
+		// bind query param dashboard_id
+		c.JSON(http.StatusBadRequest, ResponseError{Message: err.Error()})
+		return
+	}
+	err := m.service.AuthorizeGrafanaDashboardAccess(c, req.DashboardID, userID.(string))
+	if err != nil {
+		c.JSON(getStatusCode(err), ResponseError{Message: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, grafanaAuthRes{Message: "you are authorized"})
 }
 
 func getStatusCode(err error) int {

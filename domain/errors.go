@@ -45,6 +45,8 @@ var (
 	ErrConflict = errors.New("your Item already exist")
 	// ErrBadParamInput will throw if the given request-body or params is not valid
 	ErrBadParamInput = errors.New("given Param is not valid")
+
+	ErrUnauthorized = errors.New("you are not authorized to access this resource")
 )
 
 var MessageInternalServerError string = "internal server error"

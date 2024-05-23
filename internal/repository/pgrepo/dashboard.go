@@ -4,8 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"dogker/lintang/monitor-service/domain"
+	"dogker/lintang/monitor-service/internal/repository/pgrepo/queries"
 	"dogker/lintang/monitor-service/pkg/postgres"
+	"errors"
+	"fmt"
 
+	gofrsuuid "github.com/gofrs/uuid"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
@@ -48,4 +52,25 @@ func (r *DashboardRepository) CreateDashboard(ctx context.Context, dashboard *do
 		zap.L().Error("r.db.Pool.ExecContext(ctx, 'INSERT INTO dashboards(uid, owner, db_type)  VALUES(?, ?, ?)'")
 	}
 	return err
+}
+
+func (r *DashboardRepository) GetDashboardOwner(ctx context.Context, dashboardUID string, userID string) error {
+	q := queries.New(r.db.Pool)
+	dashboardUUID, err := gofrsuuid.FromString(dashboardUID)
+	if err != nil {
+		zap.L().Error("uuid fromString", zap.Error(err), zap.String("dashboardUID", dashboardUID))
+		return err
+	}
+	dbOwner, err := q.GetContainerOwnerByID(ctx, dashboardUUID.String())
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return domain.WrapErrorf(err, domain.ErrNotFound, fmt.Sprintf(`dashboard %s not found`, dashboardUID))
+		}
+	}
+	if dbOwner.Owner.String() != userID {
+		return domain.WrapErrorf(errors.New("you are not authorized to access this grafana dashboard"), domain.ErrUnauthorized, "you are not authorized to access this grafana dashboard")
+	}
+
+
+	return nil
 }

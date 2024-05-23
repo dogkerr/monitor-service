@@ -25,3 +25,9 @@ SELECT c.id, c.user_id, c.image, c.status, c.name, c.container_port, c.public_po
 	cl.replica as lifecycleReplica, cl.status as lifecycleStatus FROM containers c  LEFT JOIN container_lifecycles cl ON cl.container_id=c.id
 	WHERE c.user_id=$1;
 
+
+-- name: GetContainerOwnerByID :one
+SELECT d.id, d.owner, d.uid
+	FROM dashboards d 
+	WHERE d.uid=$1;
+

@@ -12,6 +12,7 @@ import (
 type DashboardRepository interface {
 	CreateDashboard(ctx context.Context, dashboard *domain.Dashboard) error
 	GetByUserIDAndType(ctx context.Context, userID, dbType string) (*domain.Dashboard, error)
+	GetDashboardOwner(ctx context.Context, dashboardUID string, userID string) error
 }
 
 type GrafanaAPI interface {
@@ -38,7 +39,7 @@ type Service struct {
 	userRepo      UserRepository
 	promeAPI      PrometheusAPI
 	monitorMQ     MonitorMQ
-	ctrClient ContainerServiceClient
+	ctrClient     ContainerServiceClient
 }
 
 func NewService(c ContainerRepository, grf GrafanaAPI, db DashboardRepository, userDb UserRepository, prome PrometheusAPI,
@@ -50,7 +51,7 @@ func NewService(c ContainerRepository, grf GrafanaAPI, db DashboardRepository, u
 		userRepo:      userDb,
 		promeAPI:      prome,
 		monitorMQ:     mtqMq,
-		ctrClient: ctrClient,
+		ctrClient:     ctrClient,
 	}
 }
 
@@ -172,9 +173,17 @@ func (m *Service) SendTerminatedInstanceToContainerService(ctx context.Context) 
 
 	err = m.ctrClient.SendTerminatedContainerToCtrService(ctx, deadSvc)
 	if err != nil {
-		return  err 
+		return err
 	}
-	return nil 
+	return nil
+}
+
+func (m *Service) AuthorizeGrafanaDashboardAccess(ctx context.Context, ctrID string, userID string) error {
+	err := m.dashboardRepo.GetDashboardOwner(ctx, ctrID, userID)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // buat testing daong

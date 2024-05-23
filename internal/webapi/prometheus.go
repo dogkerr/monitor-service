@@ -241,6 +241,9 @@ func (p *PrometheusAPI) GetTerminatedContainers(ctx context.Context) ([]string, 
 		for keyMetric, value := range vector[i].Metric {
 			zap.L().Info(fmt.Sprintf(`metrics: %s,  value:  %s`, keyMetric, value))
 		}
+		for j, _ := range vector[i].Values {
+			zap.L().Info(fmt.Sprintf(`%v`, vector[i].Values[j].Value))
+		}
 		
 	}
 

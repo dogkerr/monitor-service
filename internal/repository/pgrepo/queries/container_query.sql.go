@@ -205,6 +205,25 @@ func (q *Queries) GetContainer(ctx context.Context, serviceID string) ([]GetCont
 	return items, nil
 }
 
+const getContainerOwnerByID = `-- name: GetContainerOwnerByID :one
+SELECT d.id, d.owner, d.uid
+	FROM dashboards d 
+	WHERE d.uid=$1
+`
+
+type GetContainerOwnerByIDRow struct {
+	ID    uuid.UUID
+	Owner uuid.UUID
+	Uid   string
+}
+
+func (q *Queries) GetContainerOwnerByID(ctx context.Context, uid string) (GetContainerOwnerByIDRow, error) {
+	row := q.db.QueryRowContext(ctx, getContainerOwnerByID, uid)
+	var i GetContainerOwnerByIDRow
+	err := row.Scan(&i.ID, &i.Owner, &i.Uid)
+	return i, err
+}
+
 const getSpecificContainerMetrics = `-- name: GetSpecificContainerMetrics :many
 SELECT m.id, m.cpus, m.memory, m.network_ingress, m.network_egress, m.created_time
 	FROM container_metrics m 
