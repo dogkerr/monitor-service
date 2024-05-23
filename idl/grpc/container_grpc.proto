@@ -1,6 +1,5 @@
 syntax = "proto3";
 
-package containerservice;
 
 option go_package = "container-service/pb";
 
@@ -27,7 +26,3 @@ service ContainerGRPCService {
     rpc Hello(HelloReq) returns (HelloResp);
     rpc ContainerTerminatedAccidentally(ContainerTerminatedAccidentallyReq) returns (ContainerTerminatedAccidentallyRes);
 }
-
-
-
-

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 const getAllUserContainer = `-- name: GetAllUserContainer :many
@@ -24,7 +25,7 @@ type GetAllUserContainerRow struct {
 	ID                 uuid.UUID
 	UserID             uuid.UUID
 	Image              string
-	Status             ContainerStatus
+	Status             ServiceStatus
 	Name               string
 	ContainerPort      int32
 	PublicPort         sql.NullInt32
@@ -88,7 +89,7 @@ type GetAllUserContainersRow struct {
 	ID                 uuid.UUID
 	UserID             uuid.UUID
 	Image              string
-	Status             ContainerStatus
+	Status             ServiceStatus
 	Name               string
 	ContainerPort      int32
 	PublicPort         sql.NullInt32
@@ -152,7 +153,7 @@ type GetContainerRow struct {
 	ID                 uuid.UUID
 	UserID             uuid.UUID
 	Image              string
-	Status             ContainerStatus
+	Status             ServiceStatus
 	Name               string
 	ContainerPort      int32
 	PublicPort         sql.NullInt32
@@ -205,6 +206,50 @@ func (q *Queries) GetContainer(ctx context.Context, serviceID string) ([]GetCont
 	return items, nil
 }
 
+const getContainerByServiceIDs = `-- name: GetContainerByServiceIDs :many
+
+SELECT c.id, c.service_id, cl.replica as lifecycleReplica, cl.start_time
+	FROM containers c 
+	LEFT JOIN container_lifecycles cl ON cl.container_id=c.id
+	WHERE c.service_id = ANY($1::varchar[])
+`
+
+type GetContainerByServiceIDsRow struct {
+	ID               uuid.UUID
+	ServiceID        string
+	Lifecyclereplica sql.NullInt32
+	StartTime        sql.NullTime
+}
+
+// IN ($1::UUID[]); -- ini gakbisa
+func (q *Queries) GetContainerByServiceIDs(ctx context.Context, dollar_1 []string) ([]GetContainerByServiceIDsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getContainerByServiceIDs, pq.Array(dollar_1))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetContainerByServiceIDsRow
+	for rows.Next() {
+		var i GetContainerByServiceIDsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ServiceID,
+			&i.Lifecyclereplica,
+			&i.StartTime,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getContainerOwnerByID = `-- name: GetContainerOwnerByID :one
 SELECT d.id, d.owner, d.uid
 	FROM dashboards d 
@@ -222,6 +267,40 @@ func (q *Queries) GetContainerOwnerByID(ctx context.Context, uid string) (GetCon
 	var i GetContainerOwnerByIDRow
 	err := row.Scan(&i.ID, &i.Owner, &i.Uid)
 	return i, err
+}
+
+const getProcessedContainers = `-- name: GetProcessedContainers :many
+SELECT c.container_id, c.down_time
+	FROM processed_terminated_container c 
+	WHERE c.container_id  = ANY($1::UUID[])
+`
+
+type GetProcessedContainersRow struct {
+	ContainerID uuid.UUID
+	DownTime    time.Time
+}
+
+func (q *Queries) GetProcessedContainers(ctx context.Context, dollar_1 []uuid.UUID) ([]GetProcessedContainersRow, error) {
+	rows, err := q.db.QueryContext(ctx, getProcessedContainers, pq.Array(dollar_1))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetProcessedContainersRow
+	for rows.Next() {
+		var i GetProcessedContainersRow
+		if err := rows.Scan(&i.ContainerID, &i.DownTime); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getSpecificContainerMetrics = `-- name: GetSpecificContainerMetrics :many
@@ -267,4 +346,64 @@ func (q *Queries) GetSpecificContainerMetrics(ctx context.Context, containerID u
 		return nil, err
 	}
 	return items, nil
+}
+
+const getSwarmServiceDetailByServiceIDs = `-- name: GetSwarmServiceDetailByServiceIDs :many
+SELECT c.id, c.service_id, c.name, c.user_id
+	FROM containers c 
+	LEFT JOIN container_lifecycles cl ON cl.container_id=c.id
+	WHERE c.service_id = ANY($1::varchar[])
+`
+
+type GetSwarmServiceDetailByServiceIDsRow struct {
+	ID        uuid.UUID
+	ServiceID string
+	Name      string
+	UserID    uuid.UUID
+}
+
+func (q *Queries) GetSwarmServiceDetailByServiceIDs(ctx context.Context, dollar_1 []string) ([]GetSwarmServiceDetailByServiceIDsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getSwarmServiceDetailByServiceIDs, pq.Array(dollar_1))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetSwarmServiceDetailByServiceIDsRow
+	for rows.Next() {
+		var i GetSwarmServiceDetailByServiceIDsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ServiceID,
+			&i.Name,
+			&i.UserID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const insertTerminatedContainer = `-- name: InsertTerminatedContainer :exec
+INSERT INTO processed_terminated_container(
+	container_id, down_time
+) VALUES (
+	$1, $2
+)
+`
+
+type InsertTerminatedContainerParams struct {
+	ContainerID uuid.UUID
+	DownTime    time.Time
+}
+
+func (q *Queries) InsertTerminatedContainer(ctx context.Context, arg InsertTerminatedContainerParams) error {
+	_, err := q.db.ExecContext(ctx, insertTerminatedContainer, arg.ContainerID, arg.DownTime)
+	return err
 }

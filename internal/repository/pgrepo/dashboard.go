@@ -71,6 +71,5 @@ func (r *DashboardRepository) GetDashboardOwner(ctx context.Context, dashboardUI
 		return domain.WrapErrorf(errors.New("you are not authorized to access this grafana dashboard"), domain.ErrUnauthorized, "you are not authorized to access this grafana dashboard")
 	}
 
-
 	return nil
 }

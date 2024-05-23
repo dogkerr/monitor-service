@@ -20,6 +20,7 @@ type (
 		Grafana
 		GRPC
 		RabbitMQ
+		HTTPClient
 	}
 
 	// App -.
@@ -65,8 +66,12 @@ type (
 	}
 
 	GRPC struct {
-		URLGrpc string `json:"urlGRPC" yaml:"urlGRPC" env:"URL_GRPC"`
+		URLGrpc      string `json:"urlGRPC" yaml:"urlGRPC" env:"URL_GRPC"`
 		ContainerURL string `json:"container_URL" env:"CONTAINER_URL"`
+	}
+
+	HTTPClient struct {
+		MailingURL string `json:"mailingURL" env:"MAILING_URL"`
 	}
 
 	RabbitMQ struct {

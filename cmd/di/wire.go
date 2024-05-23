@@ -16,14 +16,13 @@ import (
 	"dogker/lintang/monitor-service/monitor"
 	"dogker/lintang/monitor-service/pb"
 	"dogker/lintang/monitor-service/pkg/postgres"
-		googlegrpc "google.golang.org/grpc"
-
 
 	"github.com/google/wire"
 )
 
 var ProviderSet wire.ProviderSet = wire.NewSet(
 	monitor.NewService,
+	webapi.NewWebAPI,
 	grpc.NewContainerClient,
 	pgrepo.NewContainerRepo,
 	webapi.NewGrafanaAPI,
@@ -31,6 +30,7 @@ var ProviderSet wire.ProviderSet = wire.NewSet(
 	pgrepo.NewUserRepo,
 	webapi.NewPrometheusAPI,
 	rabbitmqrepo.NewMonitorMQ,
+	wire.Bind(new(monitor.MailingWebAPI), new(*webapi.MailingWebAPI)),
 	wire.Bind(new(monitor.ContainerServiceClient), new(*grpc.ContainerClient)),
 	wire.Bind(new(rest.MonitorService), new(*monitor.Service)),
 	wire.Bind(new(monitor.ContainerRepository), new(*pgrepo.ContainerRepository)),
@@ -51,7 +51,7 @@ var ProviderSetMonitorGrpcSet wire.ProviderSet = wire.NewSet(
 )
 
 func InitMonitorService(rmq *rabbitmq.RabbitMQ, pgRepo *postgres.Postgres, cfg *config.Config,
-		cc *googlegrpc.ClientConn) *monitor.Service {
+) *monitor.Service {
 
 	// wire.Build(
 	// 	start.InitHTTPandGRPC,

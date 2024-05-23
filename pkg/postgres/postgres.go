@@ -38,7 +38,9 @@ func NewPostgres(cfg *config.Config) *Postgres {
 	db.SetConnMaxIdleTime(5 * time.Minute)
 	db.SetConnMaxLifetime(60 * time.Minute)
 
-	if err := db.PingContext(context.Background()); err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), 40*time.Second)
+	defer cancel()
+	if err := db.PingContext(ctx); err != nil {
 		zap.L().Fatal("db.PingContext", zap.Error(err))
 	}
 	return &Postgres{db}

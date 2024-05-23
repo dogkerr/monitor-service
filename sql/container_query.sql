@@ -31,3 +31,37 @@ SELECT d.id, d.owner, d.uid
 	FROM dashboards d 
 	WHERE d.uid=$1;
 
+
+-- name: InsertTerminatedContainer :exec 
+INSERT INTO processed_terminated_container(
+	container_id, down_time
+) VALUES (
+	$1, $2
+);
+
+
+
+-- name: GetProcessedContainers :many
+SELECT c.container_id, c.down_time
+	FROM processed_terminated_container c 
+	WHERE c.container_id  = ANY($1::UUID[]);
+	
+	-- IN ($1::UUID[]); -- ini gakbisa
+
+-- name: GetContainerByServiceIDs :many
+SELECT c.id, c.service_id, cl.replica as lifecycleReplica, cl.start_time
+	FROM containers c 
+	LEFT JOIN container_lifecycles cl ON cl.container_id=c.id
+	WHERE c.service_id = ANY($1::varchar[]);
+
+
+-- name: GetSwarmServiceDetailByServiceIDs :many
+SELECT c.id, c.service_id, c.name, c.user_id
+	FROM containers c 
+	LEFT JOIN container_lifecycles cl ON cl.container_id=c.id
+	WHERE c.service_id = ANY($1::varchar[]);
+
+
+
+
+

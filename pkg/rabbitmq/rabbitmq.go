@@ -14,7 +14,9 @@ type RabbitMQ struct {
 
 func NewRabbitMQ(cfg *config.Config) *RabbitMQ {
 	zap.L().Info("rmq address: " + cfg.RabbitMQ.RMQAddress)
+		
 	conn, err := amqp.Dial(cfg.RabbitMQ.RMQAddress)
+	
 	if err != nil {
 		zap.L().Fatal("error: cannot connect to rabbitmq: " + err.Error())
 	}

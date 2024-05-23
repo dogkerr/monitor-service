@@ -24,7 +24,7 @@ type MonitorService interface {
 	GetUserMonitorDashboard(ctx context.Context, userID string) (*domain.Dashboard, error)
 	GetLogsDashboard(ctx context.Context, userID string) (*domain.Dashboard, error)
 	SendAllUsersMetricsToRMQ(ctx context.Context) error
-	SendTerminatedInstanceToContainerService(ctx context.Context) error
+	SendDownInstanceToContainerServiceAndMailingService(ctx context.Context) error
 	AuthorizeGrafanaDashboardAccess(ctx context.Context, ctrID string, userID string) error
 }
 
@@ -43,7 +43,7 @@ func NewMonitorHandler(rg *gin.RouterGroup, svc MonitorService) {
 		h.GET("/dashboards/monitors", middleware.AuthMiddleware(), handler.GetUserMonitorDashboard)
 		h.GET("/dashboards/logs", middleware.AuthMiddleware(), handler.GetUserLogsDashboard)
 		h.POST("/cron/usersmetrics", handler.CronAllUsersHandler)
-		h.POST("/cron/terminatedAccidentally", handler.ContainerTerminatedAccidentally)
+		h.POST("/cron/terminatedAccidentally", handler.ContainerDownAccidentally)
 		h.GET("/")
 		h.GET("/grafana/auth", middleware.AuthMiddleware(), handler.AuthGrafana)
 
@@ -112,7 +112,7 @@ func (m *MonitorHandler) GetAllUserContainerHandler(c *gin.Context) {
 			ID:                  s[i].ID,
 			UserID:              s[i].UserID,
 			ImageURL:            s[i].Image,
-			Status:              s[i].Status.String(),
+			Status:              string(s[i].Status),
 			Name:                s[i].Name,
 			ContainerPort:       s[i].ContainerPort,
 			PublicPort:          s[i].PublicPort,
@@ -231,8 +231,8 @@ type CronTerminatedInstanceResp struct {
 	Message string `json:"message"`
 }
 
-func (m *MonitorHandler) ContainerTerminatedAccidentally(c *gin.Context) {
-	err := m.service.SendTerminatedInstanceToContainerService(c)
+func (m *MonitorHandler) ContainerDownAccidentally(c *gin.Context) {
+	err := m.service.SendDownInstanceToContainerServiceAndMailingService(c)
 	if err != nil {
 		c.JSON(getStatusCode(err), ResponseError{Message: err.Error()})
 		return

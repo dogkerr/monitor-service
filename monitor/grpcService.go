@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -18,13 +19,16 @@ type PrometheusAPI interface {
 	GetUserContainerResourceUsageRequest(ctx context.Context, userID string, fromTimeIn *timestamppb.Timestamp) (*domain.Prometheus, error)
 	GetMetricsByServiceID(ctx context.Context, serviceID string, fromTimeIn *timestamppb.Timestamp) (*domain.Metric, error)
 	GetMetricsByServiceIDNotGRPC(ctx context.Context, serviceID string, fromTimeIn time.Time) (*domain.Metric, error)
-	GetTerminatedContainers(ctx context.Context) ([]string, error)
+	GetStoppedContainers(ctx context.Context) ([]string, map[string]int, error)
 }
 
 type ContainerRepository interface {
-	Get(ctx context.Context, serviceID string) (*domain.Container, error)
 	GetAllUserContainer(ctx context.Context, userID string) (*[]domain.Container, error)
+	Get(ctx context.Context, serviceID string) (*domain.Container, error)
 	GetSpecificConatainerMetrics(ctx context.Context, ctrID string) (*domain.Metric, error)
+	InsertTerminatedContainer(ctx context.Context, containerID string) error
+	GetProcessedContainers(ctx context.Context, serviceIDs []string, downContainers map[string]int) ([]string, []uuid.UUID, error)
+	GetSwarmServicesDetail(ctx context.Context, serviceIDs []string) ([]domain.CommonLabelsMailing, error)
 }
 
 type MonitorServerImpl struct {
@@ -81,9 +85,9 @@ func (server *MonitorServerImpl) GetAllUserContainerResourceUsage(
 		}
 
 		usersContainer = append(usersContainer, &pb.Container{
-			Id:                     ctr[i].ID.String(),
-			ImageUrl:               ctr[i].Image,
-			Status:                 pb.ContainerStatus(ctr[i].Status),
+			Id:       ctr[i].ID.String(),
+			ImageUrl: ctr[i].Image,
+			// Status:                 pb.ContainerStatus(ctr[i].Status),
 			Name:                   ctr[i].Name,
 			ContainerPort:          uint64(ctr[i].ContainerPort),
 			PublicPort:             uint64(ctr[i].PublicPort),
@@ -122,8 +126,10 @@ func (server *MonitorServerImpl) GetSpecificContainerResourceUsage(
 	if err != nil && errors.Is(err, domain.ErrNotFound) {
 		return nil, status.Errorf(codes.NotFound, "container not found %v", err)
 	}
+
 	if ctr.UserID.String() != userID {
-		return nil, status.Errorf(codes.PermissionDenied, fmt.Sprintf("anda bukan pemilik container dg id %v", containerID))
+		zap.L().Info(fmt.Sprintf("ctrUserID :%s", ctr.UserID.String()))
+		return nil, status.Errorf(codes.PermissionDenied, fmt.Sprintf("user %s bukan pemilik container dg id %s", req.UserId, containerID))
 	}
 
 	ctrMetrics, err := server.prome.GetMetricsByServiceID(ctx, ctr.ServiceID, fromTime)
@@ -139,7 +145,6 @@ func (server *MonitorServerImpl) GetSpecificContainerResourceUsage(
 			ContainerId: ctr.ID.String(),
 			StartTime:   timestamppb.New(life.StartTime),
 			StopTime:    timestamppb.New(life.StopTime),
-
 			Replica: life.Replica,
 			Status:  pb.ContainerStatus(life.Status),
 		})
@@ -149,9 +154,9 @@ func (server *MonitorServerImpl) GetSpecificContainerResourceUsage(
 
 		CurrentTime: timestamppb.New(time.Now()),
 		UserContainer: &pb.Container{
-			Id:                     ctr.ID.String(),
-			ImageUrl:               ctr.Image,
-			Status:                 pb.ContainerStatus(ctr.Status),
+			Id:       ctr.ID.String(),
+			ImageUrl: ctr.Image,
+			// Status:                 pb.ContainerStatus(ctr.Status),
 			Name:                   ctr.Name,
 			ContainerPort:          uint64(ctr.ContainerPort),
 			PublicPort:             uint64(ctr.PublicPort),

@@ -29,7 +29,11 @@ type MonitorMQ interface {
 }
 
 type ContainerServiceClient interface {
-	SendTerminatedContainerToCtrService(ctx context.Context, terminatedInstances []string) error
+	SendDownContainerToCtrService(ctx context.Context, terminatedInstances []string) error
+}
+
+type MailingWebAPI interface {
+	SendDownSwarmServiceToMailingService(ctx context.Context, ml domain.CommonLabelsMailing) error
 }
 
 type Service struct {
@@ -40,10 +44,11 @@ type Service struct {
 	promeAPI      PrometheusAPI
 	monitorMQ     MonitorMQ
 	ctrClient     ContainerServiceClient
+	mailingClient MailingWebAPI
 }
 
 func NewService(c ContainerRepository, grf GrafanaAPI, db DashboardRepository, userDb UserRepository, prome PrometheusAPI,
-	mtqMq MonitorMQ, ctrClient ContainerServiceClient) *Service {
+	mtqMq MonitorMQ, ctrClient ContainerServiceClient, mailingClient MailingWebAPI) *Service {
 	return &Service{
 		containerRepo: c,
 		grafanaClient: grf,
@@ -52,6 +57,7 @@ func NewService(c ContainerRepository, grf GrafanaAPI, db DashboardRepository, u
 		promeAPI:      prome,
 		monitorMQ:     mtqMq,
 		ctrClient:     ctrClient,
+		mailingClient: mailingClient,
 	}
 }
 
@@ -126,15 +132,17 @@ func (m *Service) SendAllUsersMetricsToRMQ(ctx context.Context) error {
 			ctr := *userContainers
 
 			var ctrMetrics *domain.Metric
-			// get metrics dari prometehus
+			// get metrics dari prometehus setiap container
 			ctrMetrics, err = m.promeAPI.GetMetricsByServiceIDNotGRPC(ctx, ctr[i].ServiceID, time.Now().Add(-30*time.Minute))
 
 			if err != nil {
+				//
 				zap.L().Error("server.prome.GetMetricsByServiceId", zap.Error(err))
 				return err
 			}
 
 			if ctrMetrics.CpuUsage == 0 {
+				// ketika di promethus gak ada
 				// kalo metrics cpu prometheus gak ada berarti containernya udah pernah diterminate, dan harus ambil metrics dari postgres
 				// tapi ini swarm servicenya harus dihapus lewat endpoint kalo gak lewat endpoint nanti error karena di tabel container-metrics belum ada rownya
 
@@ -164,17 +172,57 @@ func (m *Service) SendAllUsersMetricsToRMQ(ctx context.Context) error {
 	return nil
 }
 
-func (m *Service) SendTerminatedInstanceToContainerService(ctx context.Context) error {
-	deadSvc, err := m.promeAPI.GetTerminatedContainers(ctx)
+// SendTerminatedInstanceToContainerService
+// @Desc Service ini dijalankan setiap 4 detik oleh cron job
+// dia listen prometheus buat tau swarm service mana yang mati (bukan dihapus) bukan karena dimatiiinn user lewat api container-servicee
+// terus accidentally stoped swarm service dikirim ke container-service
+// container-service masukin metrics terakhir dari ctr tersebut ke tabel metrics
+// karna stop swarm service itu bisa berkali kali , misal user stop terus start terus stop swarm service lagi
+func (m *Service) SendDownInstanceToContainerServiceAndMailingService(ctx context.Context) error {
+	deadSvc, currentDownReplicas, err := m.promeAPI.GetStoppedContainers(ctx) // get serviceIDs container yang stopped > 10s, tapi gak swarm service/semua container swarm service tsb yang mati , jadi ada 1 ctr dari swarm service mati padahal total replica ada 5 pun tetep direturn method ini
 	if err != nil {
 		zap.L().Error(" m.promeAPI.GetTerminatedContainers(ctx) (SendTerminatedInstanceToContainerService) (MonoitorService)", zap.Error(err))
 		return err
 	}
 
-	err = m.ctrClient.SendTerminatedContainerToCtrService(ctx, deadSvc)
+	notProcessedDownServiceIDs, notProcessedDownCtrIDs, err := m.containerRepo.GetProcessedContainers(ctx, deadSvc, currentDownReplicas) // cek apakah container sebelumnya pernah diproses service ini , returnnya ctrIDs dan serviceIDs yang belum pernah diproses service ini
+	if err != nil {
+		zap.L().Error("m.containerRepo.GetProcessedContainers(ctx, deadSvc) (SendTerminatedInstanceToContainerService) (ContainerService)", zap.Error(err))
+		return err
+	}
+
+	err = m.ctrClient.SendDownContainerToCtrService(ctx, notProcessedDownServiceIDs) // kiirm terminated container ke container-service buat dima
 	if err != nil {
 		return err
 	}
+
+	downSwarmServicesDetail, err := m.containerRepo.GetSwarmServicesDetail(ctx, notProcessedDownServiceIDs) // get swarm service detail buat diikiirm ke mailing service
+	if err != nil {
+		return err
+	}
+
+	if len(downSwarmServicesDetail) != 0 {
+		// send down service message to mailing (udah pasti 1 service down aja tiap 1 menit yang dikirim)
+		for i := range downSwarmServicesDetail {
+			// send down swarm service detail to mailing service
+			err := m.mailingClient.SendDownSwarmServiceToMailingService(ctx, downSwarmServicesDetail[i])
+			if err != nil {
+				zap.L().Error(" m.mailingClient.SendDownSwarmServiceToMailingService (SendDownInstanceToContainerServiceAndMailingService) (MonitorService)", zap.Error(err))
+				return err 
+			}
+		}
+	}
+
+	for i, _ := range notProcessedDownCtrIDs {
+		// insert terminated conatiner yang baru aja diprocess ke tabel terminated container
+		newProcessedCtr := notProcessedDownCtrIDs[i]
+		err := m.containerRepo.InsertTerminatedContainer(ctx, newProcessedCtr.String())
+		if err != nil {
+			zap.L().Error("m.containerRepo.InsertTerminatedContainer(ctx, newProcessedCtr) (SendTerminatedInstanceToContainerService) (ContainerService)", zap.Error(err))
+			return err
+		}
+	}
+
 	return nil
 }
 

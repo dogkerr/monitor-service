@@ -10,7 +10,6 @@ import (
 	"net"
 
 	grpcClient "google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -37,12 +36,12 @@ func InitHTTPandGRPC(cfg *config.Config, handler *gin.Engine) *InitWireApp {
 
 	// service := monitor.NewService(containerRepository, grf, dbRepo, userDb, prometheusAPI, mtrMq)
 
-	cc, err := grpcClient.NewClient(cfg.GRPC.ContainerURL+"?wait=30s", grpcClient.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		zap.L().Fatal("grpcClient.NewClient", zap.Error(err ))
-	}
+	// cc, err := grpcClient.NewClient(cfg.GRPC.ContainerURL+"?wait=30s", grpcClient.WithTransportCredentials(insecure.NewCredentials()))
+	// if err != nil {
+	// 	zap.L().Fatal("grpcClient.NewClient", zap.Error(err ))
+	// }
 
-	monitorSvc := di.InitMonitorService(rmq, pg, cfg, cc)
+	monitorSvc := di.InitMonitorService(rmq, pg, cfg)
 	rest.NewRouter(handler, monitorSvc)
 
 	address := cfg.GRPC.URLGrpc
