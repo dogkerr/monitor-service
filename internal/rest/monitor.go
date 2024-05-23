@@ -45,7 +45,7 @@ func NewMonitorHandler(rg *gin.RouterGroup, svc MonitorService) {
 		h.POST("/cron/usersmetrics", handler.CronAllUsersHandler)
 		h.POST("/cron/terminatedAccidentally", handler.ContainerTerminatedAccidentally)
 		h.GET("/")
-		h.POST("/grafana/auth", handler.AuthGrafana)
+		h.GET("/grafana/auth", middleware.AuthMiddleware(), handler.AuthGrafana)
 
 	}
 }
