@@ -212,6 +212,7 @@ func (r *ContainerRepository) GetProcessedContainers(ctx context.Context, servic
 
 	var containerIDs []uuid.UUID
 	for i, _ := range rows {
+		zap.L().Info(fmt.Sprintf("ctrID: %s", rows[i].ID.String()))
 		containerIDs = append(containerIDs, rows[i].ID)
 	}
 
@@ -223,9 +224,9 @@ func (r *ContainerRepository) GetProcessedContainers(ctx context.Context, servic
 
 	var processedCtrSet = make(map[uuid.UUID]bool) // bikin set isinya processed containerIDs
 	for i, _ := range processedTerminatedCtrIDs {
-		if time.Now().Sub(processedTerminatedCtrIDs[i].DownTime) > 1*time.Minute {
-			// ini mastiin kalau swarm service down , dalam 1 menit cuma bisa kirim 1 email doang
-			// jadi menit kedua kalau swarm service down lagi ya kirim email lagi , begitu seterus nya utk menit menit berikutnya (selisih 1 menit)
+		if time.Now().Sub(processedTerminatedCtrIDs[i].DownTime) < 3*time.Minute {
+			// ini mastiin kalau swarm service down , dalam 3 menit cuma bisa kirim 1 email doang
+			// jadi menit kedua kalau swarm service down lagi ya kirim email lagi , begitu seterus nya utk menit menit berikutnya (selisih 3 menit)
 			processedCtrSet[processedTerminatedCtrIDs[i].ContainerID] = true
 		}
 	}
@@ -287,13 +288,13 @@ func (r *ContainerRepository) GetSwarmServicesDetail(ctx context.Context, servic
 	var commonLabels []domain.CommonLabelsMailing
 	for i, _ := range swarmServicesDetail {
 		commonLabels = append(commonLabels, domain.CommonLabelsMailing{
-			Alertname: fmt.Sprintf("swarm service %s down", swarmServicesDetail[i].ServiceID ),
-			ContainerSwarmServiceID: swarmServicesDetail[i].ServiceID,
+			Alertname:                       fmt.Sprintf("swarm service %s down", swarmServicesDetail[i].ServiceID),
+			ContainerSwarmServiceID:         swarmServicesDetail[i].ServiceID,
 			ContainerDockerSwarmServiceName: swarmServicesDetail[i].Name,
-			ContainerLabelUserID: swarmServicesDetail[i].UserID.String(),
+			ContainerLabelUserID:            swarmServicesDetail[i].UserID.String(),
 		})
 	}
-	return commonLabels, nil 
+	return commonLabels, nil
 }
 
 // insert accidentally terminated container  (container yg mati bukan karena dimattiin user lewat api container-service)

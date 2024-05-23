@@ -26,7 +26,6 @@ EXPOSE 8953
 
 
 CMD ["./dlv", "--listen=:8953", "--continue", "--headless=true",  "--accept-multiclient", "--api-version=2", "exec", "/bin/app"]
-# CMD ["/bin/app"]
 
 
 

@@ -201,18 +201,6 @@ func (m *Service) SendDownInstanceToContainerServiceAndMailingService(ctx contex
 		return err
 	}
 
-	if len(downSwarmServicesDetail) != 0 {
-		// send down service message to mailing (udah pasti 1 service down aja tiap 1 menit yang dikirim)
-		for i := range downSwarmServicesDetail {
-			// send down swarm service detail to mailing service
-			err := m.mailingClient.SendDownSwarmServiceToMailingService(ctx, downSwarmServicesDetail[i])
-			if err != nil {
-				zap.L().Error(" m.mailingClient.SendDownSwarmServiceToMailingService (SendDownInstanceToContainerServiceAndMailingService) (MonitorService)", zap.Error(err))
-				return err 
-			}
-		}
-	}
-
 	for i, _ := range notProcessedDownCtrIDs {
 		// insert terminated conatiner yang baru aja diprocess ke tabel terminated container
 		newProcessedCtr := notProcessedDownCtrIDs[i]
@@ -220,6 +208,18 @@ func (m *Service) SendDownInstanceToContainerServiceAndMailingService(ctx contex
 		if err != nil {
 			zap.L().Error("m.containerRepo.InsertTerminatedContainer(ctx, newProcessedCtr) (SendTerminatedInstanceToContainerService) (ContainerService)", zap.Error(err))
 			return err
+		}
+	}
+
+	if len(downSwarmServicesDetail) != 0 {
+		// send down service message to mailing (udah pasti 1 service down aja tiap 1 menit yang dikirim)
+		for i := range downSwarmServicesDetail {
+			// send down swarm service detail to mailing service
+			err := m.mailingClient.SendDownSwarmServiceToMailingService(ctx, downSwarmServicesDetail[i])
+			if err != nil {
+				zap.L().Error(" m.mailingClient.SendDownSwarmServiceToMailingService (SendDownInstanceToContainerServiceAndMailingService) (MonitorService)", zap.Error(err))
+				return err
+			}
 		}
 	}
 
