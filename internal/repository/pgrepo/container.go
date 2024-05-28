@@ -198,6 +198,32 @@ type containerWithItsReplica struct {
 	ServiceID string
 }
 
+func (r *ContainerRepository) GetLatestContainerLifecycleByCtrID(ctx context.Context, ctrID string) (domain.ContainerLifecycle, error) {
+	q := queries.New(r.db.Pool)
+	ctrUUID, err := gofrsuuid.FromString(ctrID)
+	if err != nil {
+		zap.L().Error("GetContainerLifecyclesByCtrID (GetContainerLifecyclesByCtrID) (ContainerRepository) ", zap.Error(err))
+		return domain.ContainerLifecycle{}, err
+	}
+
+	rows, err := q.GetContainerLifecycleByCtrID(ctx, uuid.NullUUID{Valid: true, UUID: uuid.UUID(ctrUUID)})
+	if err != nil {
+		zap.L().Error("q.GetContainerLifecycleByCtrID() (GetContainerLifecyclesByCtrID) (ContainerRepository)")
+		return domain.ContainerLifecycle{}, err
+	}
+
+	var latestCtrLifeRows queries.GetContainerLifecycleByCtrIDRow
+	if len(rows) != 0 && len(rows) > 1 {
+		latestCtrLifeRows = qSortWaktuCtrLifecycle(rows) // dapetin last containerlifecycle
+	}
+	latestCtrLife := domain.ContainerLifecycle{
+		ID:        latestCtrLifeRows.ID,
+		StartTime: latestCtrLifeRows.StartTime,
+		Status:    domain.GetContainerStatus[string(latestCtrLifeRows.Status)],
+	}
+	return latestCtrLife, nil
+}
+
 // get containerID yang sebelumnya pernah diproses sama service SendDownInstanceToContainerServiceAndMailingService
 func (r *ContainerRepository) GetProcessedContainers(ctx context.Context, serviceIDs []string, downContainersReplica map[string]int) ([]string, []uuid.UUID, error) {
 	q := queries.New(r.db.Pool)
@@ -276,6 +302,7 @@ func (r *ContainerRepository) GetProcessedContainers(ctx context.Context, servic
 
 func (r *ContainerRepository) GetSwarmServicesDetail(ctx context.Context, serviceIDs []string) ([]domain.CommonLabelsMailing, error) {
 	q := queries.New(r.db.Pool)
+	
 
 	swarmServicesDetail, err := q.GetSwarmServiceDetailByServiceIDs(ctx, serviceIDs)
 	if err != nil {
@@ -287,6 +314,7 @@ func (r *ContainerRepository) GetSwarmServicesDetail(ctx context.Context, servic
 	}
 	var commonLabels []domain.CommonLabelsMailing
 	for i, _ := range swarmServicesDetail {
+
 		commonLabels = append(commonLabels, domain.CommonLabelsMailing{
 			Alertname:                       fmt.Sprintf("swarm service %s down", swarmServicesDetail[i].ServiceID),
 			ContainerSwarmServiceID:         swarmServicesDetail[i].ServiceID,
@@ -324,6 +352,45 @@ func reverseInplaceCtrArray(arr []queries.GetContainerByServiceIDsRow, start int
 		end--
 	}
 	return arr
+}
+
+// get latest container lifecycle
+func qSortWaktuCtrLifecycle(arr []queries.GetContainerLifecycleByCtrIDRow) queries.GetContainerLifecycleByCtrIDRow {
+
+	var recurse func(left int, right int)
+	var partition func(left int, right int, pivot int) int
+
+	partition = func(left int, right int, pivot int) int {
+		v := arr[pivot]
+		right--
+		arr[pivot], arr[right] = arr[right], arr[pivot]
+
+		for i := left; i < right; i++ {
+
+			if arr[i].StartTime.Unix() <= v.StartTime.Unix() {
+				arr[i], arr[left] = arr[left], arr[i]
+				left++
+			}
+		}
+
+
+		arr[left], arr[right] = arr[right], arr[left]
+		return left
+	}
+
+	recurse = func(left int, right int) {
+		if left < right {
+			pivot := (right + left) / 2
+			pivot = partition(left, right, pivot)
+			recurse(left, pivot)
+			recurse(pivot+1, right)
+		}
+	}
+
+	zap.L().Debug("begin qSortWaktuCtrLifecycle")
+	recurse(0, len(arr))
+	zap.L().Debug("end qSortWaktuCtrLifecycle")
+	return arr[len(arr)-1]
 }
 
 // / sorting containerlifecycle berdassarkan waktu distartnya dari terdahulu ke terkini

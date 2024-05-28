@@ -17,6 +17,12 @@ func (s ContainerStatus) String() string {
 	return [...]string{"RUN", "STOP"}[s-1]
 }
 
+var GetContainerStatus = map[string]ContainerStatus{ //create a map to link enumeration values with string representation
+	"RUN":    RUN,
+	"STOP":     STOP,
+}
+
+
 type ContainerLifecycle struct {
 	ID          uuid.UUID       `json:"id"`
 	ContainerID uuid.UUID       `json:"containerId"`

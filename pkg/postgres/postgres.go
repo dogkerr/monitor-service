@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"dogker/lintang/monitor-service/config"
+	"fmt"
 	"net/url"
 
 	"time"
@@ -16,6 +17,9 @@ type Postgres struct {
 }
 
 func NewPostgres(cfg *config.Config) *Postgres {
+	zap.L().Info(
+		fmt.Sprintf("pg url: %s", cfg.Postgres.PGURL),
+	)
 	dsn := url.URL{
 		Scheme: cfg.Postgres.PGScheme,
 		Host:   cfg.Postgres.PGURL, // "localhost:5432"

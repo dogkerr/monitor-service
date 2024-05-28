@@ -47,3 +47,20 @@ func (c *ContainerClient) SendDownContainerToCtrService(ctx context.Context, ter
 	return nil
 
 }
+
+func (c *ContainerClient) GetContainerStatus(ctx context.Context, serviceID string) (bool, error) {
+	grpcCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	zap.L().Info("serviceIDs", zap.String("serviceID", serviceID))
+
+	req := &pb.GetContainerStatusReq{
+		ServiceID: serviceID,
+	}
+
+	res, err := c.service.GetContainerStatus(grpcCtx, req)
+	if err != nil {
+		zap.L().Error("c.service.GetContainerStatus (GetContainserStatus) (ContainerGRPCCLient)", zap.Error(err))
+		return false, err
+	}
+	return res.Status, nil
+}

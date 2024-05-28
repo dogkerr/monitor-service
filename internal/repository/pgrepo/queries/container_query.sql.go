@@ -250,6 +250,41 @@ func (q *Queries) GetContainerByServiceIDs(ctx context.Context, dollar_1 []strin
 	return items, nil
 }
 
+const getContainerLifecycleByCtrID = `-- name: GetContainerLifecycleByCtrID :many
+SELECT cl.start_time, cl.status, cl.id
+	FROM container_lifecycles cl
+	WHERE cl.container_id = $1
+`
+
+type GetContainerLifecycleByCtrIDRow struct {
+	StartTime time.Time
+	Status    ContainerStatus
+	ID        uuid.UUID
+}
+
+func (q *Queries) GetContainerLifecycleByCtrID(ctx context.Context, containerID uuid.NullUUID) ([]GetContainerLifecycleByCtrIDRow, error) {
+	rows, err := q.db.QueryContext(ctx, getContainerLifecycleByCtrID, containerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetContainerLifecycleByCtrIDRow
+	for rows.Next() {
+		var i GetContainerLifecycleByCtrIDRow
+		if err := rows.Scan(&i.StartTime, &i.Status, &i.ID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getContainerOwnerByID = `-- name: GetContainerOwnerByID :one
 SELECT d.id, d.owner, d.uid
 	FROM dashboards d 

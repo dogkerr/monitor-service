@@ -41,6 +41,8 @@ INSERT INTO processed_terminated_container(
 
 
 
+
+
 -- name: GetProcessedContainers :many
 SELECT c.container_id, c.down_time
 	FROM processed_terminated_container c 
@@ -62,6 +64,11 @@ SELECT c.id, c.service_id, c.name, c.user_id
 	WHERE c.service_id = ANY($1::varchar[]);
 
 
+
+-- name: GetContainerLifecycleByCtrID :many
+SELECT cl.start_time, cl.status, cl.id
+	FROM container_lifecycles cl
+	WHERE cl.container_id = $1;
 
 
 

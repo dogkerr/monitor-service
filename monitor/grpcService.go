@@ -29,6 +29,7 @@ type ContainerRepository interface {
 	InsertTerminatedContainer(ctx context.Context, containerID string) error
 	GetProcessedContainers(ctx context.Context, serviceIDs []string, downContainers map[string]int) ([]string, []uuid.UUID, error)
 	GetSwarmServicesDetail(ctx context.Context, serviceIDs []string) ([]domain.CommonLabelsMailing, error)
+	GetLatestContainerLifecycleByCtrID(ctx context.Context, ctrID string) (domain.ContainerLifecycle, error)
 }
 
 type MonitorServerImpl struct {
@@ -145,8 +146,8 @@ func (server *MonitorServerImpl) GetSpecificContainerResourceUsage(
 			ContainerId: ctr.ID.String(),
 			StartTime:   timestamppb.New(life.StartTime),
 			StopTime:    timestamppb.New(life.StopTime),
-			Replica: life.Replica,
-			Status:  pb.ContainerStatus(life.Status),
+			Replica:     life.Replica,
+			Status:      pb.ContainerStatus(life.Status),
 		})
 	}
 

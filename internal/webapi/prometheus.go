@@ -45,7 +45,7 @@ func (p *PrometheusAPI) GetUserContainerResourceUsageRequest(ctx context.Context
 	}
 	seconds := fmt.Sprintf("%f", (time.Since(fromTimeIn.AsTime())).Seconds())
 
-	cpuResults, warnings, err := promeAPI.QueryRange(ctx, "sum(rate(container_cpu_usage_seconds_total{container_label_user_id=~\""+userID+"\"}[1h])) * 100 * "+seconds+" /3600", r, v1.WithTimeout(5*time.Second))
+	cpuResults, warnings, err := promeAPI.QueryRange(ctx, "avg(rate(container_cpu_usage_seconds_total{container_label_user_id=~\""+userID+"\"}[30m])) * 100 * "+seconds+"", r, v1.WithTimeout(5*time.Second))
 	if err != nil {
 		zap.L().Error("Gagal mendapatkan query CPU Usage", zap.Error(err))
 		return nil, err
@@ -135,7 +135,7 @@ func (p *PrometheusAPI) GetMetricsByServiceID(ctx context.Context, serviceID str
 	}
 	seconds := fmt.Sprintf("%f", (time.Since(fromTimeIn.AsTime())).Seconds())
 
-	cpuResults, warnings, err := promeAPI.QueryRange(ctx, "sum(rate(container_cpu_usage_seconds_total{container_label_com_docker_swarm_service_id=~\""+serviceID+".*\"}[1h])) * 100 * "+seconds+" /3600", r, v1.WithTimeout(5*time.Second))
+	cpuResults, warnings, err := promeAPI.QueryRange(ctx, "avg(rate(container_cpu_usage_seconds_total{container_label_com_docker_swarm_service_id=~\""+serviceID+".*\"}[30m])) * 100 * "+seconds+" ", r, v1.WithTimeout(5*time.Second))
 	if err != nil {
 		zap.L().Error("Gagal mendapatkan query CPU Usage", zap.Error(err))
 		return nil, err
@@ -217,7 +217,7 @@ func (p *PrometheusAPI) GetStoppedContainers(ctx context.Context) ([]string, map
 		Step:  time.Hour,
 	}
 
-	terminatedInstancesProme, warnings, err := promeAPI.QueryRange(ctx, "count(time()  - container_last_seen{ container_label_com_docker_compose_service=~\".+\"} > 10)   by (container_label_com_docker_swarm_service_id, container_label_com_docker_swarm_service_name,  container_label_user_id)", r, v1.WithTimeout(5*time.Second))
+	terminatedInstancesProme, warnings, err := promeAPI.QueryRange(ctx, "count(time()  - container_last_seen{ container_label_com_docker_compose_service=~\".+\"} > 15)   by (container_label_com_docker_swarm_service_id, container_label_com_docker_swarm_service_name,  container_label_user_id)", r, v1.WithTimeout(5*time.Second))
 	if err != nil {
 		zap.L().Error("Gagal mendapatkan Terminated Instace", zap.Error(err))
 		return nil, nil, domain.WrapErrorf(err, domain.ErrInternalServerError, "Gagal mendapatkan Terminated Instace")
@@ -279,7 +279,7 @@ func (p *PrometheusAPI) GetMetricsByServiceIDNotGRPC(ctx context.Context, servic
 	}
 	seconds := fmt.Sprintf("%f", (time.Since(fromTimeIn)).Seconds())
 
-	cpuResults, warnings, err := promeAPI.QueryRange(ctx, "sum(rate(container_cpu_usage_seconds_total{container_label_com_docker_swarm_service_id=~\""+serviceID+".*\"}[1h])) * 100 * "+seconds+" /3600", r, v1.WithTimeout(5*time.Second))
+	cpuResults, warnings, err := promeAPI.QueryRange(ctx, "sum(rate(container_cpu_usage_seconds_total{container_label_com_docker_swarm_service_id=~\""+serviceID+".*\"}[30m])) * 100 * "+seconds+" ", r, v1.WithTimeout(5*time.Second))
 	if err != nil {
 		zap.L().Error("Gagal mendapatkan query CPU Usage", zap.Error(err))
 		return nil, err

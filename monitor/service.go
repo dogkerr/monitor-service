@@ -6,6 +6,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
@@ -30,6 +31,7 @@ type MonitorMQ interface {
 
 type ContainerServiceClient interface {
 	SendDownContainerToCtrService(ctx context.Context, terminatedInstances []string) error
+	GetContainerStatus(ctx context.Context, serviceID string) (bool, error)
 }
 
 type MailingWebAPI interface {
@@ -178,53 +180,111 @@ func (m *Service) SendAllUsersMetricsToRMQ(ctx context.Context) error {
 // terus accidentally stoped swarm service dikirim ke container-service
 // container-service masukin metrics terakhir dari ctr tersebut ke tabel metrics
 // karna stop swarm service itu bisa berkali kali , misal user stop terus start terus stop swarm service lagi
-func (m *Service) SendDownInstanceToContainerServiceAndMailingService(ctx context.Context) error {
-	deadSvc, currentDownReplicas, err := m.promeAPI.GetStoppedContainers(ctx) // get serviceIDs container yang stopped > 10s, tapi gak swarm service/semua container swarm service tsb yang mati , jadi ada 1 ctr dari swarm service mati padahal total replica ada 5 pun tetep direturn method ini
-	if err != nil {
-		zap.L().Error(" m.promeAPI.GetTerminatedContainers(ctx) (SendTerminatedInstanceToContainerService) (MonoitorService)", zap.Error(err))
-		return err
-	}
+// func (m *Service) SendDownInstanceToContainerServiceAndMailingService(ctx context.Context) error {
+// 	deadSvc, currentDownReplicas, err := m.promeAPI.GetStoppedContainers(ctx) // get serviceIDs container yang stopped > 10s, tapi gak swarm service/semua container swarm service tsb yang mati , jadi ada 1 ctr dari swarm service mati padahal total replica ada 5 pun tetep direturn method ini
+// 	if err != nil {
+// 		zap.L().Error(" m.promeAPI.GetTerminatedContainers(ctx) (SendTerminatedInstanceToContainerService) (MonoitorService)", zap.Error(err))
+// 		return err
+// 	}
 
-	notProcessedDownServiceIDs, notProcessedDownCtrIDs, err := m.containerRepo.GetProcessedContainers(ctx, deadSvc, currentDownReplicas) // cek apakah container sebelumnya pernah diproses service ini , returnnya ctrIDs dan serviceIDs yang belum pernah diproses service ini
-	if err != nil {
-		zap.L().Error("m.containerRepo.GetProcessedContainers(ctx, deadSvc) (SendTerminatedInstanceToContainerService) (ContainerService)", zap.Error(err))
-		return err
-	}
+// 	notProcessedDownServiceIDs, notProcessedDownCtrIDs, err := m.containerRepo.GetProcessedContainers(ctx, deadSvc, currentDownReplicas) // cek apakah container sebelumnya pernah diproses service ini , returnnya ctrIDs dan serviceIDs yang belum pernah diproses service ini
+// 	if err != nil {
+// 		zap.L().Error("m.containerRepo.GetProcessedContainers(ctx, deadSvc) (SendTerminatedInstanceToContainerService) (ContainerService)", zap.Error(err))
+// 		return err
+// 	}
+// 	notProcessedDownCtrIDs = m.removeDuplicateUUIDArray(notProcessedDownCtrIDs, len(notProcessedDownCtrIDs))
+// 	notProcessedDownServiceIDs = m.removeDuplicateStringArray(notProcessedDownServiceIDs, len(notProcessedDownServiceIDs))
+// 	for i, notProcessedSvcID := range notProcessedDownServiceIDs {
+// 		if notProcessedSvcID == "" {
+// 			notProcessedDownServiceIDs = notProcessedDownServiceIDs[:i]
+// 			notProcessedDownCtrIDs = notProcessedDownCtrIDs[:i]
+// 		}
+// 	}
+// 	// cek apakah emang container down bukan karena di stop oleh user pemilik container . Caranya dg cek last status container
+// 	for i, _ := range notProcessedDownCtrIDs { // ini bikin error
+// 		latestCtrILife, err := m.containerRepo.GetLatestContainerLifecycleByCtrID(ctx, notProcessedDownCtrIDs[i].String())
+// 		if err != nil {
+// 			zap.L().Error("m.containerRepo.GetLatestContainerLifecycleByCtrID (SendDownInstanceToContainerServiceAndMailingService) (ContainerService)", zap.Error(err))
+// 			// gak usah return?
+// 			return err
+// 		}
 
-	err = m.ctrClient.SendDownContainerToCtrService(ctx, notProcessedDownServiceIDs) // kiirm terminated container ke container-service buat dima
-	if err != nil {
-		return err
-	}
+// 		if latestCtrILife.Status == domain.STOP {
+// 			// jika status latest containerLifeCycle adalah stopped , berarti emang sengaja distop user (di handler endpoint stopContainer, update latest ctrlIfe jadi stopped )
+// 			// delete inplace elemen array ini
 
-	downSwarmServicesDetail, err := m.containerRepo.GetSwarmServicesDetail(ctx, notProcessedDownServiceIDs) // get swarm service detail buat diikiirm ke mailing service
-	if err != nil {
-		return err
-	}
+// 			notProcessedDownCtrIDs[i] = notProcessedDownCtrIDs[len(notProcessedDownCtrIDs)-1]
+// 			notProcessedDownCtrIDs = notProcessedDownCtrIDs[:len(notProcessedDownCtrIDs)-1]
 
-	for i, _ := range notProcessedDownCtrIDs {
-		// insert terminated conatiner yang baru aja diprocess ke tabel terminated container
-		newProcessedCtr := notProcessedDownCtrIDs[i]
-		err := m.containerRepo.InsertTerminatedContainer(ctx, newProcessedCtr.String())
-		if err != nil {
-			zap.L().Error("m.containerRepo.InsertTerminatedContainer(ctx, newProcessedCtr) (SendTerminatedInstanceToContainerService) (ContainerService)", zap.Error(err))
-			return err
-		}
-	}
+// 			// itk notProcessedDownServiceIDs
+// 			notProcessedDownServiceIDs[i] = notProcessedDownServiceIDs[len(notProcessedDownServiceIDs)-1]
+// 			notProcessedDownServiceIDs = notProcessedDownServiceIDs[:len(notProcessedDownServiceIDs)-1]
+// 		}
 
-	if len(downSwarmServicesDetail) != 0 {
-		// send down service message to mailing (udah pasti 1 service down aja tiap 1 menit yang dikirim)
-		for i := range downSwarmServicesDetail {
-			// send down swarm service detail to mailing service
-			err := m.mailingClient.SendDownSwarmServiceToMailingService(ctx, downSwarmServicesDetail[i])
-			if err != nil {
-				zap.L().Error(" m.mailingClient.SendDownSwarmServiceToMailingService (SendDownInstanceToContainerServiceAndMailingService) (MonitorService)", zap.Error(err))
-				return err
-			}
-		}
-	}
+// 	}
 
-	return nil
-}
+// 		/// yang ini grpc bikin error...
+
+// 	// for i, svcID := range notProcessedDownServiceIDs {
+
+// 	// 	ctrStatusIsRun, err := m.ctrClient.GetContainerStatus(ctx, svcID)
+// 	// 	if err != nil {
+// 	// 		zap.L().Error(" m.ctrClient.GetContainerStatus (SendDownInstanceToContainerServiceAndMailingService)", zap.Error(err))
+// 	// 		return err
+// 	// 	}
+// 	// 	if ctrStatusIsRun == true {
+// 	// 		// kalau masih run (sattus tabel container & status di dockerAPI) hapus dari array
+
+// 	// 		notProcessedDownServiceIDs[i] = notProcessedDownServiceIDs[len(notProcessedDownServiceIDs)-1]
+// 	// 		notProcessedDownServiceIDs = notProcessedDownServiceIDs[:len(notProcessedDownServiceIDs)-1]
+
+// 	// 		notProcessedDownCtrIDs[i] = notProcessedDownCtrIDs[len(notProcessedDownCtrIDs)-1]
+// 	// 		notProcessedDownCtrIDs = notProcessedDownCtrIDs[:len(notProcessedDownCtrIDs)-1]
+
+// 	// 	}
+// 	// }
+
+// 	// cek lagi di docker api dia masih stopped atau gak...
+
+// 	// kalau latestCtrLife.Sttaus == RUN dan sebelumnya distop ->  tetep dikirim ke ctr service
+
+// 	// ini gaperlu karena nanti bakal kestart lagi servicenya (bikin error jg), dan gaperlu update status container jg 
+// 	// kalau container stopped bukan karena aksi sengaja user , kirim ke container svc & email svc
+// 	// err = m.ctrClient.SendDownContainerToCtrService(ctx, notProcessedDownServiceIDs) // kiirm terminated container ke container-service buat
+// 	// if err != nil {
+// 	// 	return err
+// 	// }
+
+// 	downSwarmServicesDetail, err := m.containerRepo.GetSwarmServicesDetail(ctx, notProcessedDownServiceIDs) // get swarm service detail buat diikiirm ke mailing service
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	for i, _ := range notProcessedDownCtrIDs {
+		
+// 		// insert terminated conatiner yang baru aja diprocess ke tabel terminated container
+// 		newProcessedCtr := notProcessedDownCtrIDs[i]
+// 		err := m.containerRepo.InsertTerminatedContainer(ctx, newProcessedCtr.String())
+// 		if err != nil {
+// 			zap.L().Error("m.containerRepo.InsertTerminatedContainer(ctx, newProcessedCtr) (SendTerminatedInstanceToContainerService) (ContainerService)", zap.Error(err))
+// 			return err
+// 		}
+// 	}
+
+// 	if len(downSwarmServicesDetail) != 0 {
+// 		// send down service message to mailing (udah pasti 1 service down aja tiap 1 menit yang dikirim)
+// 		for i := range downSwarmServicesDetail {
+// 			// send down swarm service detail to mailing service
+// 			err := m.mailingClient.SendDownSwarmServiceToMailingService(ctx, downSwarmServicesDetail[i])
+// 			if err != nil {
+// 				zap.L().Error(" m.mailingClient.SendDownSwarmServiceToMailingService (SendDownInstanceToContainerServiceAndMailingService) (MonitorService)", zap.Error(err))
+// 				return err
+// 			}
+// 		}
+// 	}
+
+// 	return nil
+// }
 
 func (m *Service) AuthorizeGrafanaDashboardAccess(ctx context.Context, ctrID string, userID string) error {
 	err := m.dashboardRepo.GetDashboardOwner(ctx, ctrID, userID)
@@ -232,6 +292,54 @@ func (m *Service) AuthorizeGrafanaDashboardAccess(ctx context.Context, ctrID str
 		return err
 	}
 	return nil
+}
+
+func (m *Service) removeDuplicateStringArray(arr []string, n int) []string {
+	if n == 0 || n == 1 {
+		return arr
+	}
+	var temp []string = make([]string, n)
+	var j int = 0
+
+	for i := 0; i < n-1; i++ {
+		if arr[i] != arr[i+1] {
+			temp[j] = arr[i]
+			j += 1
+		}
+	}
+	temp[j] = arr[n-1]
+	j += 1
+
+	for i := 0; i < j; i++ {
+		arr[i] = temp[i]
+
+	}
+	arr = arr[:j]
+	return arr
+}
+
+func (m *Service) removeDuplicateUUIDArray(arr []uuid.UUID, n int) []uuid.UUID {
+	if n == 0 || n == 1 {
+		return arr
+	}
+	var temp []uuid.UUID = make([]uuid.UUID, n)
+	var j int = 0
+
+	for i := 0; i < n-1; i++ {
+		if arr[i] != arr[i+1] {
+			temp[j] = arr[i]
+			j += 1
+		}
+	}
+	temp[j] = arr[n-1]
+	j += 1
+
+	for i := 0; i < j; i++ {
+		arr[i] = temp[i]
+
+	}
+	arr = arr[:j]
+	return arr
 }
 
 // buat testing daong

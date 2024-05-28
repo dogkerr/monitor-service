@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 
-	gofrsuuid "github.com/gofrs/uuid"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
@@ -56,12 +55,8 @@ func (r *DashboardRepository) CreateDashboard(ctx context.Context, dashboard *do
 
 func (r *DashboardRepository) GetDashboardOwner(ctx context.Context, dashboardUID string, userID string) error {
 	q := queries.New(r.db.Pool)
-	dashboardUUID, err := gofrsuuid.FromString(dashboardUID)
-	if err != nil {
-		zap.L().Error("uuid fromString", zap.Error(err), zap.String("dashboardUID", dashboardUID))
-		return err
-	}
-	dbOwner, err := q.GetContainerOwnerByID(ctx, dashboardUUID.String())
+
+	dbOwner, err := q.GetContainerOwnerByID(ctx, dashboardUID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return domain.WrapErrorf(err, domain.ErrNotFound, fmt.Sprintf(`dashboard %s not found`, dashboardUID))
