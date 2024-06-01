@@ -143,37 +143,10 @@ func (m *Service) SendAllUsersMetricsToRMQ(ctx context.Context) error {
 				return err
 			}
 
-			// ketika di promethus gak ada
-			// atau misal gini: aku stop container 5 detik yang lalu, sedangkan last metrics 
-			// yang dikiirm ke billing service itu 40 detik yang lalu, berarti ada 35 detik yang metrics container nya tidak terhitung
-			// nah sedangkan pas container diterminate/di stop , last metrics nya disimpen ke tabel container-metrics
-			// maka dari itu, biar kita bisa dapet ngurangin saldo user dari 35 detik waktu hidup container itu
-			// aku cek apakah time.now() - terminatedTime  < 45 detik atau time.Now() - stoppedtime < 45 detik, kita ambil 
-			// metrics dari tabel container-metrics terus kirim ke biling biar ngurang saldo nya utk metrics 35 detik itu
-			// sedangkan jika  ime.now() - terminatedTime  > 45 detik atau time.Now() - stoppedtime > 45 detik, 
-			// kita harus ngirimm metrics zero (angka 0 semua ) biar gak ngurang saldo usernya karna udah di stop lebih dari 45 detik yang lalu 
-			
-			// kalo metrics cpu prometheus gak ada berarti containernya udah pernah diterminate, dan harus ambil metrics dari postgres
-			// tapi ini swarm servicenya harus dihapus lewat endpoint kalo gak lewat endpoint nanti error karena di tabel container-metrics belum ada rownya
+			// ketika container udah distop/terminate, ya gak usah kirim ke billing , biar gak dicharge
 			if ctr[i].Status == domain.ServiceStopped || ctr[i].Status == domain.ServiceTerminated {
-				terminatedTime := time.Now().Sub(ctr[i].TerminatedTime)
-				latestStoppedTime := time.Now().Sub(qSortWaktuCtrLifecycle(ctr[i].ContainerLifecycles).StopTime)
-
-				if terminatedTime < 45*time.Second || latestStoppedTime < 45*time.Second {
-					// kalau terminated container kurang dari 45 second (waktu cron jobnya )
-					// yang berarti ketika container di stop
-					ctrMetrics, err = m.containerRepo.GetSpecificConatainerMetrics(ctx, ctr[i].ID.String())
-					if err != nil {
-						zap.L().Error("m.containerRepo.GetSpecificConatainerMetrics", zap.Error(err))
-						return err
-					}
-				} else {
-					// kalau stopped time / terminated time  lebih dari 45 second
-					ctrMetrics.CpuUsage = 0
-					ctrMetrics.MemoryUsage = 0
-					ctrMetrics.NetworkIngressUsage = 0
-					ctrMetrics.NetworkEgressUsage = 0
-				}
+				// skip container ini karena udah mati /terminated / stopped
+				continue
 			}
 
 			allUsersMetrics = append(allUsersMetrics, domain.UserMetricsMessage{
