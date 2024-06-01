@@ -35,10 +35,11 @@ func InitMonitorService(rmq *rabbitmq.RabbitMQ, pgRepo *postgres.Postgres, cfg *
 	return service
 }
 
-func InitMonitorGrpcService(pgRepo *postgres.Postgres, cfg *config.Config) *monitor.MonitorServerImpl {
+func InitMonitorGrpcService(rmq *rabbitmq.RabbitMQ, pgRepo *postgres.Postgres, cfg *config.Config) *monitor.MonitorServerImpl {
 	prometheusAPI := webapi.NewPrometheusAPI(cfg)
 	containerRepository := pgrepo.NewContainerRepo(pgRepo)
-	monitorServerImpl := monitor.NewMonitorServer(prometheusAPI, containerRepository)
+	monitorMQ := rabbitmqrepo.NewMonitorMQ(rmq)
+	monitorServerImpl := monitor.NewMonitorServer(prometheusAPI, containerRepository, monitorMQ)
 	return monitorServerImpl
 }
 
@@ -46,4 +47,4 @@ func InitMonitorGrpcService(pgRepo *postgres.Postgres, cfg *config.Config) *moni
 
 var ProviderSet wire.ProviderSet = wire.NewSet(monitor.NewService, webapi.NewWebAPI, grpc.NewContainerClient, pgrepo.NewContainerRepo, webapi.NewGrafanaAPI, pgrepo.NewDashboardRepo, pgrepo.NewUserRepo, webapi.NewPrometheusAPI, rabbitmqrepo.NewMonitorMQ, wire.Bind(new(monitor.MailingWebAPI), new(*webapi.MailingWebAPI)), wire.Bind(new(monitor.ContainerServiceClient), new(*grpc.ContainerClient)), wire.Bind(new(rest.MonitorService), new(*monitor.Service)), wire.Bind(new(monitor.ContainerRepository), new(*pgrepo.ContainerRepository)), wire.Bind(new(monitor.GrafanaAPI), new(*webapi.GrafanaAPI)), wire.Bind(new(monitor.DashboardRepository), new(*pgrepo.DashboardRepository)), wire.Bind(new(monitor.UserRepository), new(*pgrepo.UserRepository)), wire.Bind(new(monitor.PrometheusAPI), new(*webapi.PrometheusAPI)), wire.Bind(new(monitor.MonitorMQ), new(*rabbitmqrepo.MonitorMQ)))
 
-var ProviderSetMonitorGrpcSet wire.ProviderSet = wire.NewSet(monitor.NewMonitorServer, webapi.NewPrometheusAPI, pgrepo.NewContainerRepo, wire.Bind(new(monitor.PrometheusAPI), new(*webapi.PrometheusAPI)), wire.Bind(new(monitor.ContainerRepository), new(*pgrepo.ContainerRepository)), wire.Bind(new(pb.MonitorServiceServer), new(*monitor.MonitorServerImpl)))
+var ProviderSetMonitorGrpcSet wire.ProviderSet = wire.NewSet(monitor.NewMonitorServer, webapi.NewPrometheusAPI, pgrepo.NewContainerRepo, rabbitmqrepo.NewMonitorMQ, wire.Bind(new(monitor.PrometheusAPI), new(*webapi.PrometheusAPI)), wire.Bind(new(monitor.ContainerRepository), new(*pgrepo.ContainerRepository)), wire.Bind(new(pb.MonitorServiceServer), new(*monitor.MonitorServerImpl)), wire.Bind(new(monitor.MonitorMQ), new(*rabbitmqrepo.MonitorMQ)))

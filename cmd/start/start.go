@@ -53,7 +53,7 @@ func InitHTTPandGRPC(cfg *config.Config, handler *gin.Engine) *InitWireApp {
 	// GRPC
 
 	// monitorServerImpl := monitor.NewMonitorServer(prometheusAPI, containerRepository)
-	monitorServerImpl := di.InitMonitorGrpcService(pg, cfg)
+	monitorServerImpl := di.InitMonitorGrpcService(rmq, pg, cfg)
 	grpcServerChan := make(chan *grpcClient.Server)
 
 	go func() {

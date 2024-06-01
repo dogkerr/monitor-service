@@ -36,11 +36,38 @@ type MonitorServerImpl struct {
 	pb.UnimplementedMonitorServiceServer
 	prome         PrometheusAPI
 	containerRepo ContainerRepository
+	monitorMQ     MonitorMQ
 }
 
-func NewMonitorServer(prome PrometheusAPI, cRepo ContainerRepository) *MonitorServerImpl {
-	return &MonitorServerImpl{prome: prome, containerRepo: cRepo}
+func NewMonitorServer(prome PrometheusAPI, cRepo ContainerRepository, mtqMq MonitorMQ) *MonitorServerImpl {
+	return &MonitorServerImpl{prome: prome, containerRepo: cRepo, monitorMQ: mtqMq}
 }
+
+func (server *MonitorServerImpl) SendMetricsStopTerminatedContainerToBillingService(
+	ctx context.Context,
+	req *pb.SendMetricsStopTerminatedContainerToBillingServiceReq,
+) (*pb.SendMetricsStopTerminatedContainerToBillingServiceRes, error) {
+	var allUsersMetrics []domain.UserMetricsMessage
+	allUsersMetrics = append(allUsersMetrics, domain.UserMetricsMessage{
+		ContainerID:         req.ContainerId,
+		UserID:              req.UserId,
+		CpuUsage:            req.CpuUsage,
+		MemoryUsage:         req.MemoryUsage,
+		NetworkIngressUsage: req.NetworkIngressUsage,
+		NetworkEgressUsage:  req.NetworkEgressUsage,
+	})
+	err := server.monitorMQ.SendAllUserMetrics(ctx, allUsersMetrics)
+	if err != nil {
+		zap.L().Error("error pas SendAllUserMetrics ke rabbittmq: ", zap.Error(err))
+		return nil, status.Errorf(codes.Internal, "error gagal send metrics container  stop/down to billing service!! , containerID: %s ", req.ContainerId)
+	}
+
+	res := &pb.SendMetricsStopTerminatedContainerToBillingServiceRes{
+		Message: "message send successfully",
+	}
+	return res, nil
+}
+
 
 // grpc service buat billing service
 // intinya dapetin metrics usage untuk keseluruhan container user dan metrics setiap container yang dipunya user

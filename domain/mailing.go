@@ -1,4 +1,5 @@
 package domain
+
 type CommonLabelsMailing struct {
 	Alertname                       string `json:"alertname"`
 	ContainerSwarmServiceID         string `json:"container_label_com_docker_swarm_service_id"`
