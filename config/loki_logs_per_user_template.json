@@ -145,7 +145,7 @@
               "uid": "c88fcc19-6b6f-4fa6-b553-47c71af66469"
             },
             "editorMode": "builder",
-            "expr": "{swarm_service=\"$swarm_service\"} |= ``",
+            "expr": "{swarm_service=\"$swarm_service\"} |= `$search_filter`",
             "queryType": "range",
             "refId": "A"
           }
