@@ -114,7 +114,7 @@
           }
         ],
         "title": "Search by keyword, swarm_service, Levels, and Method",
-        "type": "timeseries"
+        "type": "logs"
       },
       {
         "datasource": {
