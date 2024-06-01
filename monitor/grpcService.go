@@ -73,6 +73,7 @@ func (server *MonitorServerImpl) GetAllUserContainerResourceUsage(
 			return nil, status.Errorf(codes.InvalidArgument, "Gagal mendapatkan metrics dari container %v", err)
 		}
 		var ctLifecycles []*pb.ContainerLifeCycles
+
 		for _, life := range ctr[i].ContainerLifecycles {
 			ctLifecycles = append(ctLifecycles, &pb.ContainerLifeCycles{
 				Id:          life.ID.String(),

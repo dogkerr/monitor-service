@@ -143,15 +143,36 @@ func (m *Service) SendAllUsersMetricsToRMQ(ctx context.Context) error {
 				return err
 			}
 
-			if ctrMetrics.CpuUsage == 0 {
-				// ketika di promethus gak ada
-				// kalo metrics cpu prometheus gak ada berarti containernya udah pernah diterminate, dan harus ambil metrics dari postgres
-				// tapi ini swarm servicenya harus dihapus lewat endpoint kalo gak lewat endpoint nanti error karena di tabel container-metrics belum ada rownya
+			// ketika di promethus gak ada
+			// atau misal gini: aku stop container 5 detik yang lalu, sedangkan last metrics 
+			// yang dikiirm ke billing service itu 40 detik yang lalu, berarti ada 35 detik yang metrics container nya tidak terhitung
+			// nah sedangkan pas container diterminate/di stop , last metrics nya disimpen ke tabel container-metrics
+			// maka dari itu, biar kita bisa dapet ngurangin saldo user dari 35 detik waktu hidup container itu
+			// aku cek apakah time.now() - terminatedTime  < 45 detik atau time.Now() - stoppedtime < 45 detik, kita ambil 
+			// metrics dari tabel container-metrics terus kirim ke biling biar ngurang saldo nya utk metrics 35 detik itu
+			// sedangkan jika  ime.now() - terminatedTime  > 45 detik atau time.Now() - stoppedtime > 45 detik, 
+			// kita harus ngirimm metrics zero (angka 0 semua ) biar gak ngurang saldo usernya karna udah di stop lebih dari 45 detik yang lalu 
+			
+			// kalo metrics cpu prometheus gak ada berarti containernya udah pernah diterminate, dan harus ambil metrics dari postgres
+			// tapi ini swarm servicenya harus dihapus lewat endpoint kalo gak lewat endpoint nanti error karena di tabel container-metrics belum ada rownya
+			if ctr[i].Status == domain.ServiceStopped || ctr[i].Status == domain.ServiceTerminated {
+				terminatedTime := time.Now().Sub(ctr[i].TerminatedTime)
+				latestStoppedTime := time.Now().Sub(qSortWaktuCtrLifecycle(ctr[i].ContainerLifecycles).StopTime)
 
-				ctrMetrics, err = m.containerRepo.GetSpecificConatainerMetrics(ctx, ctr[i].ID.String())
-				if err != nil {
-					zap.L().Error("m.containerRepo.GetSpecificConatainerMetrics", zap.Error(err))
-					return err
+				if terminatedTime < 45*time.Second || latestStoppedTime < 45*time.Second {
+					// kalau terminated container kurang dari 45 second (waktu cron jobnya )
+					// yang berarti ketika container di stop
+					ctrMetrics, err = m.containerRepo.GetSpecificConatainerMetrics(ctx, ctr[i].ID.String())
+					if err != nil {
+						zap.L().Error("m.containerRepo.GetSpecificConatainerMetrics", zap.Error(err))
+						return err
+					}
+				} else {
+					// kalau stopped time / terminated time  lebih dari 45 second
+					ctrMetrics.CpuUsage = 0
+					ctrMetrics.MemoryUsage = 0
+					ctrMetrics.NetworkIngressUsage = 0
+					ctrMetrics.NetworkEgressUsage = 0
 				}
 			}
 
@@ -172,6 +193,44 @@ func (m *Service) SendAllUsersMetricsToRMQ(ctx context.Context) error {
 		return err
 	}
 	return nil
+}
+
+// get latest container lifecycle
+func qSortWaktuCtrLifecycle(arr []domain.ContainerLifecycle) domain.ContainerLifecycle {
+
+	var recurse func(left int, right int)
+	var partition func(left int, right int, pivot int) int
+
+	partition = func(left int, right int, pivot int) int {
+		v := arr[pivot]
+		right--
+		arr[pivot], arr[right] = arr[right], arr[pivot]
+
+		for i := left; i < right; i++ {
+
+			if arr[i].StartTime.Unix() <= v.StartTime.Unix() {
+				arr[i], arr[left] = arr[left], arr[i]
+				left++
+			}
+		}
+
+		arr[left], arr[right] = arr[right], arr[left]
+		return left
+	}
+
+	recurse = func(left int, right int) {
+		if left < right {
+			pivot := (right + left) / 2
+			pivot = partition(left, right, pivot)
+			recurse(left, pivot)
+			recurse(pivot+1, right)
+		}
+	}
+
+	zap.L().Debug("begin qSortWaktuCtrLifecycle")
+	recurse(0, len(arr))
+	zap.L().Debug("end qSortWaktuCtrLifecycle")
+	return arr[len(arr)-1]
 }
 
 // SendTerminatedInstanceToContainerService
@@ -248,7 +307,7 @@ func (m *Service) SendAllUsersMetricsToRMQ(ctx context.Context) error {
 
 // 	// kalau latestCtrLife.Sttaus == RUN dan sebelumnya distop ->  tetep dikirim ke ctr service
 
-// 	// ini gaperlu karena nanti bakal kestart lagi servicenya (bikin error jg), dan gaperlu update status container jg 
+// 	// ini gaperlu karena nanti bakal kestart lagi servicenya (bikin error jg), dan gaperlu update status container jg
 // 	// kalau container stopped bukan karena aksi sengaja user , kirim ke container svc & email svc
 // 	// err = m.ctrClient.SendDownContainerToCtrService(ctx, notProcessedDownServiceIDs) // kiirm terminated container ke container-service buat
 // 	// if err != nil {
@@ -261,7 +320,7 @@ func (m *Service) SendAllUsersMetricsToRMQ(ctx context.Context) error {
 // 	}
 
 // 	for i, _ := range notProcessedDownCtrIDs {
-		
+
 // 		// insert terminated conatiner yang baru aja diprocess ke tabel terminated container
 // 		newProcessedCtr := notProcessedDownCtrIDs[i]
 // 		err := m.containerRepo.InsertTerminatedContainer(ctx, newProcessedCtr.String())
@@ -285,8 +344,6 @@ func (m *Service) SendAllUsersMetricsToRMQ(ctx context.Context) error {
 
 // 	return nil
 // }
-
-
 
 func (m *Service) AuthorizeGrafanaDashboardAccess(ctx context.Context, ctrID string, userID string) error {
 	err := m.dashboardRepo.GetDashboardOwner(ctx, ctrID, userID)
