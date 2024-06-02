@@ -8,7 +8,6 @@ import (
 	"dogker/lintang/monitor-service/config"
 	"dogker/lintang/monitor-service/pkg/rabbitmq"
 
-	"dogker/lintang/monitor-service/internal/grpc"
 	"dogker/lintang/monitor-service/internal/repository/pgrepo"
 	"dogker/lintang/monitor-service/internal/repository/rabbitmqrepo"
 	"dogker/lintang/monitor-service/internal/rest"
@@ -23,16 +22,14 @@ import (
 var ProviderSet wire.ProviderSet = wire.NewSet(
 	monitor.NewService,
 	webapi.NewWebAPI,
-	grpc.NewContainerClient,
 	pgrepo.NewContainerRepo,
 	webapi.NewGrafanaAPI,
 	pgrepo.NewDashboardRepo,
 	pgrepo.NewUserRepo,
 	webapi.NewPrometheusAPI,
 	rabbitmqrepo.NewMonitorMQ,
-	
+
 	wire.Bind(new(monitor.MailingWebAPI), new(*webapi.MailingWebAPI)),
-	wire.Bind(new(monitor.ContainerServiceClient), new(*grpc.ContainerClient)),
 	wire.Bind(new(rest.MonitorService), new(*monitor.Service)),
 	wire.Bind(new(monitor.ContainerRepository), new(*pgrepo.ContainerRepository)),
 	wire.Bind(new(monitor.GrafanaAPI), new(*webapi.GrafanaAPI)),

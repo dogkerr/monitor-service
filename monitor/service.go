@@ -45,12 +45,11 @@ type Service struct {
 	userRepo      UserRepository
 	promeAPI      PrometheusAPI
 	monitorMQ     MonitorMQ
-	ctrClient     ContainerServiceClient
 	mailingClient MailingWebAPI
 }
 
 func NewService(c ContainerRepository, grf GrafanaAPI, db DashboardRepository, userDb UserRepository, prome PrometheusAPI,
-	mtqMq MonitorMQ, ctrClient ContainerServiceClient, mailingClient MailingWebAPI) *Service {
+	mtqMq MonitorMQ, mailingClient MailingWebAPI) *Service {
 	return &Service{
 		containerRepo: c,
 		grafanaClient: grf,
@@ -58,7 +57,6 @@ func NewService(c ContainerRepository, grf GrafanaAPI, db DashboardRepository, u
 		userRepo:      userDb,
 		promeAPI:      prome,
 		monitorMQ:     mtqMq,
-		ctrClient:     ctrClient,
 		mailingClient: mailingClient,
 	}
 }
